@@ -1,0 +1,16 @@
+{
+  "name": "crmpbxconnector",
+  "version": "1.0.0",
+  "description": "Pbx to Crm transfer data calls",
+  "main": "main.js",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "http": "^0.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Giovanni Torsello",
+  "license": "ISC"
+}
