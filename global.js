@@ -17,4 +17,4 @@ global.internal_phone_map.set("23", "AdGzRzNn");
 global.internal_phone_map.set("24", "ysebe2u6");
 
 //database
-global.conection_mvysql={};
+global.connection_mysql={};

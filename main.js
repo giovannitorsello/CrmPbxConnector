@@ -3,6 +3,9 @@ var du = require('date-utils');
 var express = require('express');
 var bodyParser = require('body-parser');
 var multer = require('multer'); 
+var schedule = require('node-schedule');
+
+
 
 //local requirements
 var config = require('./config.js').config;
@@ -31,8 +34,8 @@ app.use("/", router);
 app.listen(8088, function () {
     console.log('Server is started.');
     //Start db connection
-    //db.start_connection();
-
+    db.start_connection();
+    
     /*
         pbx.get_pbx_calls_status();
         //Update every minute
@@ -49,9 +52,6 @@ app.get('/config/external_phone_number_list', function (request, response) {
     response.json(config.external_phone_number);
 });
 
-
-
-
 router.use(function (req, res, next) {
     console.log("/" + req.method);
     next();
@@ -60,7 +60,6 @@ router.use(function (req, res, next) {
 router.get("/", function (req, res) {
     res.sendFile(path + "login.html");
 });
-
 
 router.post('/login', upload.array(), function (req, res, next) {
     var username=req.body.username;
@@ -79,11 +78,8 @@ router.get("/about", function (req, res) {
     res.sendFile(path + "about.html");
 });
 
-/*
-app.use("*", function (req, res) {
-    res.sendFile(path + "404.html");
+//Schedule read PBX
+var j = schedule.scheduleJob('*/55 * * * * *', function(){
+    pbx.get_pbx_calls_status();
 });
-*/
-
-
 

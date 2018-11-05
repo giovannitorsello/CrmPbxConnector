@@ -1,4 +1,7 @@
 var io = require('socket.io-client');
+var config = require('./config.js').config;
+var database = require('./database.js');
+
 var i_inc_ans = 1, i_out_ans = 1, i_inc_noans = 1, i_out_noans = 1;
         
 module.exports = {
@@ -14,10 +17,13 @@ module.exports = {
         incoming_noanswered_calls.clear();
         socket_map.clear();
         //Find call list for wach internal number
-        internal_phone_map.forEach(function callback(password, internal_phone, Map) {
-            var socket = io.connect('https://my.cloudpbx.it:30293', { secure: true, rejectUnauthorized: false });
+        config.internal_phone_number.forEach(function callback(internal) {
+            var internal_phone=internal.username;
+            var password= internal.password;
+            console.log("Getting info for: "+internal_phone);
+            var socket = io.connect('https://my.cloudpbx.it:30644', { secure: true, rejectUnauthorized: false });
             socket_map.set(internal_phone, socket);
-            registerSocketEventListeners(socket, internal_phone, password);
+            registerSocketEventListeners(socket, internal_phone,password);
         }); //End iteration forEach between internal_phone maps
     },
     //close socket before exit
@@ -75,9 +81,10 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             calls.forEach(function (call) {
                 //Outgoing calls                        
                 if (internal_phone_map.has(call.caller)) {
+                    database.insert_call(call,"outgoing");
                     if (call.stato == "NO ANSWER") {
-                        console.log("Found not answer outgoing call -> " + call.caller);
-                        outgoing_noanswered_calls.set(i_out_noans, call);
+                        //console.log("Found not answer outgoing call -> " + call.caller);
+                        outgoing_noanswered_calls.set(i_out_noans, call);                    
                         i_out_noans++;
                     }
                     if (call.stato == "ANSWERED") {
@@ -86,9 +93,10 @@ function registerSocketEventListeners(soc, internal_phone, password) {
                     }
                 }
                 //Incoming calls
-                if (internal_phone_map.has(call.called)) {
+                if (internal_phone_map.has(call.called)) {                    
+                    database.insert_call(call,"incoming");
                     if (call.stato == "NO ANSWER") {
-                        console.log("Found not answer incoming call -> " + call.caller);
+                        //console.log("Found not answer incoming call -> " + call.caller);
                         incoming_noanswered_calls.set(i_inc_noans, call);
                         i_inc_noans++;
                     }
@@ -97,6 +105,7 @@ function registerSocketEventListeners(soc, internal_phone, password) {
                         i_inc_ans++;
                     }
                 }
+                
             });
             soc.emit("disconnect");
             soc.close();
