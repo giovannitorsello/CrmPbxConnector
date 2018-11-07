@@ -44,7 +44,24 @@ module.exports = {
       });
     });
   },
+  search_calls: function (start_date, end_date, internal_phone_number, external_phone_number, customer_contact, call_type, callback) {
+    //Date conversion
+    start_date = (new Date ((new Date((new Date(start_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');
+    end_date = (new Date ((new Date((new Date(end_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');
 
+    var sql="SELECT * FROM calls WHERE(";
+    if(start_date) sql+="begin>'"+start_date+"'";
+    if(end_date) sql+=" AND begin<'"+end_date+"'";
+    if(internal_phone_number) sql+=" AND called='"+internal_phone_number+"'";
+    if(customer_contact) sql+=" AND caller='"+customer_contact+"'";
+    sql+=");"
+    console.log(sql);
+    global.connection_mysql.query(sql, function (err, result) {
+      if (err) {console.log("Search error");}
+      else console.log("Search done: "+sql);
+      callback(result);
+    });
+  },
   insert_call: function (call, type) {
     //make unique identifier for call
     var str_obj_call=JSON.stringify(call);

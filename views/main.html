@@ -33,12 +33,12 @@
 <body id="Main">
   <div class="container">
     <h1 class="form-heading">Pbx Monitor</h1>
-    <form id="Search" action="/search" method="post">
+    <form id="SearchCalls" action="/search_calls" method="post">
       <div class="form-group row">
 
         <div class="col-xs-2 start_date">
           <label for="start_date">Inizio</label>
-          <div class="input-group date" id="start_date" data-target-input="nearest">
+          <div class="input-group date" id="start_date_div" data-target-input="nearest">
             <input type="text" class="form-control datetimepicker-input" data-target="#start_date" id="start_date" name="start_date" />
             <div class="input-group-append" data-target="#start_date" data-toggle="datetimepicker">
               <div class="input-group-text"><i class="fa fa-calendar"></i></div>
@@ -48,7 +48,7 @@
 
         <div class="col-xs-2 end_date">
           <label for="end_date">Fine</label>
-          <div class="input-group date" id="end_date" data-target-input="nearest">
+          <div class="input-group date" id="end_date_div" data-target-input="nearest">
             <input type="text" class="form-control datetimepicker-input" data-target="#end_date" id="end_date" name="end_date" />
             <div class="input-group-append" data-target="#end_date" data-toggle="datetimepicker">
               <div class="input-group-text"><i class="fa fa-calendar"></i></div>
@@ -58,28 +58,16 @@
 
         <div class="col-xs-2 div_internal_phone_number">
           <label for="internal_phone_number">Interno</label>
-          <div class="dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true"
-              aria-expanded="false" id="internal_phone_number" name="internal_phone_number">
-              Interno
-            </button>
-            <div id="internal_phone_number_list" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-              <a class="dropdown-item" href="#">no data from server</a>
-            </div>
-          </div>
+          <select class="form-control" id="internal_phone_number" name="internal_phone_number">
+            <option>no data from server</option>
+          </select>
         </div>
 
         <div class="col-xs-2 div_external_phone_number">
           <label for="external_phone_number">Esterno</label>
-          <div class="dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true"
-              aria-expanded="false" id="extrenal_phone_number" name="external_phone_number">
-              Interno
-            </button>
-            <div id="external_phone_number_list" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-              <a class="dropdown-item" href="#">no data from server</a>
-            </div>
-          </div>
+          <select class="form-control" id="external_phone_number" name="external_phone_number">
+            <option>no data from server</option>
+          </select>
         </div>
 
         <div class="col-xs-2 div_customer_contact">
@@ -92,7 +80,7 @@
         <div class="col-xs-2 div_btn_search">
           <label for="trova"></label>
           <div class="dropdown">
-            <button id="btn_search" type="submit" class="btn btn-primary">Trova</button>
+            <button id="btn_search" type="button" class="btn btn-primary">Trova</button>
           </div>
         </div>
       </div>
@@ -102,11 +90,13 @@
       <table id="calls_search_results_table" class="table table-striped table-bordered" style="width:100%">
         <thead>
           <tr>
+            <th></th>
             <th>Orario</th>
-            <th>Cliente</th>
-            <th>Numero Esterno</th>
+            <th>Durata</th>
+            <th>Chiamato</th>
+            <th>Chiamante</th>
+            <th>Tipo</th>
             <th>Stato</th>
-            <th>Percorso</th>
           </tr>
         </thead>
         <tbody>
@@ -114,11 +104,13 @@
         </tbody>
         <tfoot>
           <tr>
+            <th></th>
             <th>Orario</th>
-            <th>Cliente</th>
-            <th>Numero Esterno</th>
+            <th>Durata</th>
+            <th>Chiamato</th>
+            <th>Chiamante</th>
+            <th>Tipo</th>
             <th>Stato</th>
-            <th>Percorso</th>
           </tr>
         </tfoot>
       </table>
@@ -129,35 +121,126 @@
   </div>
 
   <script type="text/javascript">
-    $(function () {
+    $(document).ready(function () {
       $('#start_date').datetimepicker();
       $('#end_date').datetimepicker();
-      $('#calls_search_results_table').DataTable({
+      var table_calls = $('#calls_search_results_table').DataTable({
         dom: 'Bfrtip',
         buttons: [
           'copy', 'csv', 'excel', 'pdf', 'print'
-        ]
+        ],
+        "columns": [
+          {
+            "className": 'details-control',
+            "orderable": false,
+            "data": null,
+            "defaultContent": ''
+          },
+          { "data": "begin" },
+          { "data": "duration" },
+          { "data": "called" },
+          { "data": "caller" },
+          { "data": "type" },
+          { "data": "status" },
+        ],
+      });
+
+      $('#calls_search_results_table tbody').on('click', 'td.details-control', function () {
+        var tr = $(this).closest('tr');
+        var row = table_calls.row(tr);
+
+        if (row.child.isShown()) {
+          // This row is already open - close it
+          row.child.hide();
+          tr.removeClass('shown');
+        }
+        else {
+          // Open this row
+          row.child(format_callflow(row.data())).show();
+          tr.addClass('shown');
+        }
       });
 
       $.get('/config/internal_phone_number_list', function (data) {
         console.log("Getting data for internal phone number.");
-        $('#internal_phone_number_list').contents().remove();
+        $('#internal_phone_number').contents().remove();
+        $('#internal_phone_number').append($('<option></option>'));
         for (var j = 0; j < data.length; j++) {
-          var newOption = $('<a class="dropdown-item" href="#">' + data[j].username + '</a>');
-          $('#internal_phone_number_list').append(newOption);
+          var newOption = $('<option>' + data[j].username + '</option>');
+          $('#internal_phone_number').append(newOption);
         }
       });
 
       $.get('/config/external_phone_number_list', function (data) {
         console.log("Getting data for external phone number.");
-        $('#external_phone_number_list').contents().remove();
+        $('#external_phone_number').contents().remove();
+        $('#external_phone_number').append($('<option></option>'));
         for (var j = 0; j < data.length; j++) {
-          var newOption = $('<a class="dropdown-item" href="#">' + data[j] + '</a>');
-          $('#external_phone_number_list').append(newOption);
+          var newOption = $('<option>' + data[j] + '</option>');
+          $('#external_phone_number').append(newOption);
         }
       });
     });
 
+    $("#btn_search").click(function () {
+      var t = $('#calls_search_results_table').DataTable();
+      t.clear();
+
+      var myform = document.getElementById("SearchCalls");
+      var fd = new FormData(myform);
+
+      $.ajax({
+        url: "/search_calls",
+        data: fd,
+        cache: false,
+        processData: false,
+        contentType: false,
+        type: 'POST',
+        success: function (result_query) {
+          result_query.forEach(element => {
+
+            //format date in uman redeable
+            var d=new Date(element.begin);
+            //console.log(element.begin);
+            //element.begin=d.getDate()+'/'+(d.getMonth() + 1)+'/'+d.getFullYear() +"  "+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds();
+
+            //Translate in italian type
+            element.type=element.type.replace(/incoming/g, "ingresso");
+            element.type=element.type.replace(/outgoing/g, "uscita");
+            //Translate in italian status
+            element.status=element.status.replace(/ANSWERED/g, "RISPOSTA");
+            element.status=element.status.replace(/NO ANSWER/g, "NON RISPOSTA");
+            element.status=element.status.replace(/BUSY/g, "OCCUPATO");
+            
+            t.row.add(element).draw("false");
+          });
+        }
+      });
+    });
+
+    function format_callflow(data_row) {
+      
+      var enc = new TextDecoder("utf-8");
+      var arrayBuffer = new Uint8Array(data_row.calldata.data).buffer;
+      var call_data = enc.decode(arrayBuffer);
+      var call_flow = JSON.parse(call_data).callflow;
+      
+      //Parse call flow
+      console.log(call_flow.length)
+      var str_flow = call_flow[0].dst + "(" + call_flow[0].stato + ")" + "> </br>";
+      for (var i = 0; i < call_flow.length - 1; i++) {
+        if ((call_flow[i].dst !== call_flow[i + 1].dst) ||
+          (call_flow[i].stato !== call_flow[i + 1].stato))
+          str_flow += ">" + call_flow[i + 1].dst + "(" + call_flow[i + 1].stato + ")" + "> </br>";
+      }
+
+      str_flow=str_flow.replace(/ANSWERED/g, "RISPOSTA");
+      str_flow=str_flow.replace(/NO ANSWER/g, "NON RISPOSTA");
+      str_flow=str_flow.replace(/BUSY/g, "OCCUPATO");
+
+      // `d` is the original data object for the row
+      return '<p>'+str_flow+'</p>';
+    }
 
 
   </script>

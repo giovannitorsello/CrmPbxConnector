@@ -52,6 +52,21 @@ app.get('/config/external_phone_number_list', function (request, response) {
     response.json(config.external_phone_number);
 });
 
+router.post('/search_calls', upload.array(), function (req, res, next) {
+    var start_date=req.body.start_date;
+    var end_date=req.body.end_date;
+    var internal_phone_number=req.body.internal_phone_number;
+    var external_phone_number=req.body.external_phone_number;
+    var customer_contact=req.body.customer_contact;
+    var call_type="NOANSWER";
+
+    db.search_calls(start_date, end_date, 
+                    internal_phone_number, external_phone_number, customer_contact, 
+                    call_type, 
+                    function (result_query) {res.json(result_query);})
+  });
+
+
 router.use(function (req, res, next) {
     console.log("/" + req.method);
     next();
@@ -79,7 +94,7 @@ router.get("/about", function (req, res) {
 });
 
 //Schedule read PBX
-var j = schedule.scheduleJob('*/55 * * * * *', function(){
-    pbx.get_pbx_calls_status();
+var j = schedule.scheduleJob('5 * * * * *', function(){
+    //pbx.get_pbx_calls_status();
 });
 

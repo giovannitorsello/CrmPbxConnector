@@ -39,3 +39,11 @@ body#Main{ background-image:url("/static/images/blur-26347-27038-hd-wallpapers.j
 .div_external_phone_number {margin-right: 10px; margin-left : 10px;}
 .div_customer_contact {margin-right: 10px; margin-left : 10px;}
 .div_btn_search {margin-right: 10px; margin-left : 10px;}
+
+td.details-control {
+  background: url('../images/details_open.png') no-repeat center center;
+  cursor: pointer;
+}
+tr.shown td.details-control {
+  background: url('../images/details_close.png') no-repeat center center;
+}
