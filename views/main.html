@@ -56,6 +56,16 @@
           </div>
         </div>
 
+        <div class="col-xs-2 div_call_type">
+          <label for="call_type">Ingresso/Uscita</label>
+          <select class="form-control" id="call_type" name="call_type">
+            <option>ingresso</option>
+            <option>uscita</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group row">
         <div class="col-xs-2 div_internal_phone_number">
           <label for="internal_phone_number">Interno</label>
           <select class="form-control" id="internal_phone_number" name="internal_phone_number">
@@ -76,48 +86,51 @@
             <input type="text" id="customer_contact" name="customer_contact" />
           </div>
         </div>
-
-        <div class="col-xs-2 div_btn_search">
-          <label for="trova"></label>
-          <div class="dropdown">
-            <button id="btn_search" type="button" class="btn btn-primary">Trova</button>
-          </div>
+      </div>
+      <div class="form-group row"></div>
+      <div class="col-xs-2 div_btn_search">
+        <label for="trova"></label>
+        <div class="dropdown">
+          <button id="btn_search" type="button" class="btn btn-primary">Trova</button>
         </div>
       </div>
-    </form>
+  </div>
+  </form>
 
-    <div id="calls_search_results" style="margin-top: 100px">
-      <table id="calls_search_results_table" class="table table-striped table-bordered" style="width:100%">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Orario</th>
-            <th>Durata</th>
-            <th>Chiamato</th>
-            <th>Chiamante</th>
-            <th>Tipo</th>
-            <th>Stato</th>
-          </tr>
-        </thead>
-        <tbody>
+  <div id="calls_search_results" style="margin-top: 100px">
+    <table id="calls_search_results_table" class="table table-striped table-bordered" style="width:100%">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Orario</th>
+          <th>Durata</th>
+          <th>Chiamato</th>
+          <th>Chiamante</th>
+          <th>Destinazione</th>
+          <th>Tipo</th>
+          <th>Stato</th>
+        </tr>
+      </thead>
+      <tbody>
 
-        </tbody>
-        <tfoot>
-          <tr>
-            <th></th>
-            <th>Orario</th>
-            <th>Durata</th>
-            <th>Chiamato</th>
-            <th>Chiamante</th>
-            <th>Tipo</th>
-            <th>Stato</th>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th></th>
+          <th>Orario</th>
+          <th>Durata</th>
+          <th>Chiamato</th>
+          <th>Chiamante</th>
+          <th>Destinazione</th>
+          <th>Tipo</th>
+          <th>Stato</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 
 
-    <p class="botto-text"> Copyright - WIFINETCOM SRL 2018</p>
+  <p class="botto-text"> Copyright - WIFINETCOM SRL 2018</p>
   </div>
 
   <script type="text/javascript">
@@ -140,6 +153,7 @@
           { "data": "duration" },
           { "data": "called" },
           { "data": "caller" },
+          { "data": "dst" },
           { "data": "type" },
           { "data": "status" },
         ],
@@ -200,18 +214,18 @@
           result_query.forEach(element => {
 
             //format date in uman redeable
-            var d=new Date(element.begin);
+            var d = new Date(element.begin);
             //console.log(element.begin);
-            //element.begin=d.getDate()+'/'+(d.getMonth() + 1)+'/'+d.getFullYear() +"  "+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds();
+            element.begin=d.getDate()+'/'+(d.getMonth() + 1)+'/'+d.getFullYear() +"  "+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds();
 
             //Translate in italian type
-            element.type=element.type.replace(/incoming/g, "ingresso");
-            element.type=element.type.replace(/outgoing/g, "uscita");
+            element.type = element.type.replace(/incoming/g, "ingresso");
+            element.type = element.type.replace(/outgoing/g, "uscita");
             //Translate in italian status
-            element.status=element.status.replace(/ANSWERED/g, "RISPOSTA");
-            element.status=element.status.replace(/NO ANSWER/g, "NON RISPOSTA");
-            element.status=element.status.replace(/BUSY/g, "OCCUPATO");
-            
+            element.status = element.status.replace(/ANSWERED/g, "RISPOSTA");
+            element.status = element.status.replace(/NO ANSWER/g, "NON RISPOSTA");
+            element.status = element.status.replace(/BUSY/g, "OCCUPATO");
+
             t.row.add(element).draw("false");
           });
         }
@@ -219,12 +233,12 @@
     });
 
     function format_callflow(data_row) {
-      
+
       var enc = new TextDecoder("utf-8");
       var arrayBuffer = new Uint8Array(data_row.calldata.data).buffer;
       var call_data = enc.decode(arrayBuffer);
       var call_flow = JSON.parse(call_data).callflow;
-      
+
       //Parse call flow
       console.log(call_flow.length)
       var str_flow = call_flow[0].dst + "(" + call_flow[0].stato + ")" + "> </br>";
@@ -234,12 +248,12 @@
           str_flow += ">" + call_flow[i + 1].dst + "(" + call_flow[i + 1].stato + ")" + "> </br>";
       }
 
-      str_flow=str_flow.replace(/ANSWERED/g, "RISPOSTA");
-      str_flow=str_flow.replace(/NO ANSWER/g, "NON RISPOSTA");
-      str_flow=str_flow.replace(/BUSY/g, "OCCUPATO");
+      str_flow = str_flow.replace(/ANSWERED/g, "RISPOSTA");
+      str_flow = str_flow.replace(/NO ANSWER/g, "NON RISPOSTA");
+      str_flow = str_flow.replace(/BUSY/g, "OCCUPATO");
 
       // `d` is the original data object for the row
-      return '<p>'+str_flow+'</p>';
+      return '<p>' + str_flow + '</p>';
     }
 
 

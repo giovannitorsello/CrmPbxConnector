@@ -18,8 +18,8 @@ var mail = require('./mail.js');
 //safe close all connections before exit
 var cleanup = require('./cleanup').cleanup(pbx.close_all_sockets);
 
-start_date = Date.today();
-end_date = Date.tomorrow();
+start_date = new Date("2018-11-05"); //Date.today();
+end_date   = new Date("2018-11-08"); //Date.tomorrow();
 
 var app = express();
 var router = express.Router();
@@ -35,12 +35,7 @@ app.listen(8088, function () {
     console.log('Server is started.');
     //Start db connection
     db.start_connection();
-    
-    /*
-        pbx.get_pbx_calls_status();
-        //Update every minute
-        setInterval(pbx.get_pbx_calls_status, 60000);    
-        */
+    pbx.get_pbx_calls_status();
 });
 
 
@@ -55,12 +50,15 @@ app.get('/config/external_phone_number_list', function (request, response) {
 router.post('/search_calls', upload.array(), function (req, res, next) {
     var start_date=req.body.start_date;
     var end_date=req.body.end_date;
+    var call_type=req.body.call_type;
     var internal_phone_number=req.body.internal_phone_number;
     var external_phone_number=req.body.external_phone_number;
     var customer_contact=req.body.customer_contact;
-    var call_type="NOANSWER";
 
-    db.search_calls(start_date, end_date, 
+    if(call_type==="ingresso") call_type="incoming";
+    if(call_type==="uscita") call_type="outgoing";
+
+    db.search_calls(start_date, end_date, call_type,
                     internal_phone_number, external_phone_number, customer_contact, 
                     call_type, 
                     function (result_query) {res.json(result_query);})

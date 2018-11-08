@@ -36,7 +36,15 @@ module.exports = {
     }
 }
 
-//Fucntion that manage all socket events
+function is_internal_number(data) {
+    var b=false;
+    config.internal_phone_number.forEach(element => {             
+        if(element.username===data) {b=true;}
+    });
+    return b;
+}
+
+//Function that manage all socket events
 function registerSocketEventListeners(soc, internal_phone, password) {
     // Add a connect listener
     soc.on('connect', function () {
@@ -80,30 +88,16 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             var calls = data.rows;
             calls.forEach(function (call) {
                 //Outgoing calls                        
-                if (internal_phone_map.has(call.caller)) {
-                    database.insert_call(call,"outgoing");
-                    if (call.stato == "NO ANSWER") {
-                        //console.log("Found not answer outgoing call -> " + call.caller);
-                        outgoing_noanswered_calls.set(i_out_noans, call);                    
-                        i_out_noans++;
-                    }
-                    if (call.stato == "ANSWERED") {
-                        outgoing_answered_calls.set(i_out_ans, call);
-                        i_out_ans++;
-                    }
+                if (is_internal_number(call.caller)) {                    
+                    //Insert only outgoing calls not internal-internal calls
+                    if(!(is_internal_number(call.called)))
+                        database.insert_call(call,"outgoing");                        
                 }
                 //Incoming calls
-                if (internal_phone_map.has(call.called)) {                    
-                    database.insert_call(call,"incoming");
-                    if (call.stato == "NO ANSWER") {
-                        //console.log("Found not answer incoming call -> " + call.caller);
-                        incoming_noanswered_calls.set(i_inc_noans, call);
-                        i_inc_noans++;
-                    }
-                    if (call.stato == "ANSWERED") {
-                        incoming_answered_calls.set(i_inc_ans, call);
-                        i_inc_ans++;
-                    }
+                if (is_internal_number(call.called)) {                    
+                    //Insert only outgoing calls not internal-internal calls
+                    if(!(is_internal_number(call.caller)))
+                        database.insert_call(call,"incoming");                    
                 }
                 
             });
