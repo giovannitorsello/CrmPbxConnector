@@ -20,7 +20,7 @@ module.exports = {
 
       //Create database and tables
       global.connection_mysql.query("CREATE DATABASE crmpbx", function (err, result) {
-        if (err) console.log(err);
+        if (err) console.log("Database existing or connection error");
         else console.log("Database created.");
 
         var sql = "CREATE TABLE calls (id INTEGER(10) AUTO_INCREMENT PRIMARY KEY, \
@@ -34,7 +34,7 @@ module.exports = {
                                       duration INTEGER(10), \
                                       calldata BLOB,CHECK (JSON_VALID(calldata)), UNIQUE (hash_call_id))";
         global.connection_mysql.query(sql, function (err, result) {
-          if (err) console.log(err);
+          if (err) console.log("Table existing or connection error");
           else console.log("Table created");
 
           global.connection_mysql.query("SELECT * FROM calls", function (err, result) {
@@ -45,7 +45,7 @@ module.exports = {
       });
     });
   },
-  search_calls: function (start_date, end_date, call_type, internal_phone_number, external_phone_number, customer_contact, call_type, callback) {
+  search_calls: function (start_date, end_date, call_type, internal_phone_number, external_phone_number, customer_contact, status, callback) {
     //Date conversion
     start_date = (new Date ((new Date((new Date(start_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');
     end_date = (new Date ((new Date((new Date(end_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');

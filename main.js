@@ -35,7 +35,8 @@ app.listen(8088, function () {
     console.log('Server is started.');
     //Start db connection
     db.start_connection();
-    pbx.get_pbx_calls_status();
+    //pbx.get_pbx_calls_status();
+    mail.sendDailyMail();
 });
 
 
@@ -92,7 +93,13 @@ router.get("/about", function (req, res) {
 });
 
 //Schedule read PBX
-var j = schedule.scheduleJob('5 * * * * *', function(){
+var job_pbx = schedule.scheduleJob('5 * * * * *', function(){
     //pbx.get_pbx_calls_status();
+});
+
+//Schedule read PBX
+var job_mail = schedule.scheduleJob('* 59 23 * * *', function(){
+    
+
 });
 
