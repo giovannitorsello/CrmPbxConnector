@@ -5,12 +5,28 @@
   "main": "main.js",
   "dependencies": {
     "body-parser": "^1.18.3",
-    "http": "^0.0.0"
+    "crypto": "^1.0.1",
+    "date-utils": "^1.2.21",
+    "express": "^4.16.4",
+    "express-session": "^1.15.6",
+    "multer": "^1.4.1",
+    "mysql": "^2.16.0",
+    "node-schedule": "^1.3.0",
+    "nodemailer": "^4.6.8",
+    "path": "^0.12.7",
+    "socket.io-client": "^2.1.1",
+    "string_decoder": "^1.1.1"
   },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Giovanni Torsello",
-  "license": "ISC"
+  "license": "ISC",
+  "pkg": {
+    "assets": [
+      "views/**/*"
+    ]
+  },
+  "bin": "main.js"
 }

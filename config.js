@@ -28,6 +28,9 @@ module.exports = {
             "0942896212",
             "0950973722",
             "0982640787"
-        ]
+        ],
+        admin_accounts: [{username: "torsello", password: "ponzo2018"}, 
+                         {username: "pomarico", password: "ponzo2018"},
+                         {username: "ponzo", password: "ponzo2018"}]
     }
 }

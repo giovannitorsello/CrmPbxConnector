@@ -45,7 +45,7 @@ module.exports = {
       });
     });
   },
-  search_calls: function (start_date, end_date, call_type, internal_phone_number, external_phone_number, customer_contact, status, callback) {
+  search_calls: function (start_date, end_date, call_type, internal_phone_number, external_phone_number, customer_contact, call_status, callback) {
     //Date conversion
     start_date = (new Date ((new Date((new Date(start_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');
     end_date = (new Date ((new Date((new Date(end_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');
@@ -55,6 +55,7 @@ module.exports = {
     if(end_date) sql+=" AND begin<'"+end_date+"'";
     if(internal_phone_number) sql+=" AND called='"+internal_phone_number+"'";
     if(call_type) sql+=" AND type='"+call_type+"'";
+    if(call_status) sql+=" AND status='"+call_status+"'";
     if(customer_contact) sql+=" AND caller='"+customer_contact+"'";
     sql+=");"
     console.log(sql);

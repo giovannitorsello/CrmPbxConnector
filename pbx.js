@@ -2,20 +2,19 @@ var io = require('socket.io-client');
 var config = require('./config.js').config;
 var database = require('./database.js');
 
-var i_inc_ans = 1, i_out_ans = 1, i_inc_noans = 1, i_out_noans = 1;
-        
+//var i_inc_ans = 1, i_out_ans = 1, i_inc_noans = 1, i_out_noans = 1;
+
+var start_date=null, end_date=null;
+
 module.exports = {
-    get_pbx_calls_status: function () {
+    get_pbx_calls_status: function (start_date_search, end_date_search) {
         //Force socket closing to be sure that Timenet server doesn't switch in protected mode
         socket_map.forEach(function callback(soc, internal_phone, Map) {soc.emit("disconnect");soc.close();});
-
-        //empty call and socket lists
-        i_inc_ans = 1; i_out_ans = 1; i_inc_noans = 1; i_out_noans = 1;
-        outgoing_answered_calls.clear();
-        outgoing_noanswered_calls.clear();
-        incoming_answered_calls.clear();
-        incoming_noanswered_calls.clear();
         socket_map.clear();
+
+        // Set global date range for search in PBX databse
+        start_date=start_date_search; end_date=end_date_search;
+        
         //Find call list for wach internal number
         config.internal_phone_number.forEach(function callback(internal) {
             var internal_phone=internal.username;
@@ -75,8 +74,8 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             token = data.token;
             username = data.username;
             password = data.password;
-            str_date_start = start_date.toFormat("YYYY-MM-DD 00:00:00");
-            str_date_end = end_date.toFormat("YYYY-MM-DD 00:00:00");
+            str_date_start = start_date.toFormat("YYYY-MM-DD HH:MI:SS");
+            str_date_end = end_date.toFormat("YYYY-MM-DD HH:MI:SS");
             var cmd = { "method": "CallLog", "DataStart": str_date_start, "DataEnd": str_date_end };
             console.log(cmd);
             soc.emit('pbx action', cmd);
