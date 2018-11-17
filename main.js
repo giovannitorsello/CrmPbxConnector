@@ -96,6 +96,7 @@ router.post('/login', upload.array(), function (req, res, next) {
     if(req.sessionID && req.session.account) {        
         res.redirect('/main?token='+req.sessionID);        
     }
+    
     config.admin_accounts.forEach(function auth(account) {
         if (username === account.username && password === account.password)
         {
@@ -106,9 +107,9 @@ router.post('/login', upload.array(), function (req, res, next) {
             sessions.set(req.sessionID,account)
             res.redirect('/main?token='+req.sessionID);
         }
-        else
-        res.redirect('/');
-});
+    });
+        
+    res.redirect('/');
 });
 
 router.get("/main", function (req, res) {
