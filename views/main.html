@@ -16,8 +16,9 @@
   <script src="static/js/moment.min.js"></script>
   <script src="static/js/popper.min.js"></script>
   <script src="static/js/bootstrap.min.js"></script>
+  <script src="static/js/moment.js"></script>
+  <script src="static/js/moment-it.js"></script>
   <script src="static/js/tempusdominus-bootstrap-4.min.js"></script>
-  <!--script src="static/js/dataTables.bootstrap4.min.js"></script>-->
   <script src="static/js/jquery.dataTables.min.js"></script>
   <script src="static/js/dataTables.buttons.min.js"></script>
   <script src="static/js/buttons.flash.min.js"></script>
@@ -141,13 +142,16 @@
   </div>
 
 
-  <p class="botto-text"> Copyright - WIFINETCOM SRL 2018</p>
+  <p class="bottom-text"> Copyright - WIFINETCOM SRL 2018</p>
   </div>
 
   <script type="text/javascript">
     $(document).ready(function () {
-      $('#start_date').datetimepicker();
-      $('#end_date').datetimepicker();
+      moment().format("DD/MM/YYYY hh:mm A");
+
+      $('#start_date').datetimepicker({locale: 'IT'});
+      $('#end_date').datetimepicker({locale: 'IT'});
+
       var table_calls = $('#calls_search_results_table').DataTable({
         dom: 'Bfrtip',
         buttons: [
@@ -227,7 +231,7 @@
             //format date in uman redeable
             var d = new Date(element.begin);
             //console.log(element.begin);
-            element.begin=d.getDate()+'/'+(d.getMonth() + 1)+'/'+d.getFullYear() +"  "+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds();
+            element.begin = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + "  " + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
 
             //Translate in italian type
             element.type = element.type.replace(/incoming/g, "ingresso");

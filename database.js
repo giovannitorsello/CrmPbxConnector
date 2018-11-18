@@ -1,5 +1,6 @@
 var global = require('./global.js');
 var mysql = require('mysql');
+var moment = require('moment');
 const hash = require('crypto').createHash;
 const { StringDecoder } = require('string_decoder');
 
@@ -46,10 +47,10 @@ module.exports = {
     });
   },
   search_calls: function (start_date, end_date, call_type, internal_phone_number, external_phone_number, customer_contact, call_status, callback) {
-    //Date conversion
-    start_date = (new Date ((new Date((new Date(start_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');
-    end_date = (new Date ((new Date((new Date(end_date)).toISOString() )).getTime() - ((new Date()).getTimezoneOffset()*60000))).toISOString().slice(0, 19).replace('T', ' ');
-
+    
+    start_date=moment(start_date,'DD/MM/YYYY').toDate().toISOString();
+    end_date=moment(end_date,'DD/MM/YYYY').toDate().toISOString();
+    
     var sql="SELECT * FROM calls WHERE(";
     if(start_date) sql+="begin>'"+start_date+"'";
     if(end_date) sql+=" AND begin<'"+end_date+"'";
