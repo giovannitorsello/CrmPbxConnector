@@ -40,8 +40,8 @@ app.listen(8088, function () {
     //Start db connection
     db.start_connection();
 
-    var start_date_search = new Date();
-    var end_date_search = new Date(start_date_search.getTime() + 5 * 60000);
+    var start_date_search = new Date(new Date().getTime() - 2*(86400000));
+    var end_date_search = new Date();
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
 
 });
@@ -124,10 +124,10 @@ router.get("/main", function (req, res) {
 });
 
 //Schedule read PBX
-var job_pbx = schedule.scheduleJob('5 * * * * *', function () {
+var job_pbx = schedule.scheduleJob('*/5 * * * *', function () {
     //Search every 5 minutes
-    var start_date_search = new Date();
-    var end_date_search = new Date(start_date_search.getTime() + 5 * 60000);
+    var start_date_search = new Date(new Date() - 86400000);
+    var end_date_search = new Date(new Date());
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
 });
 

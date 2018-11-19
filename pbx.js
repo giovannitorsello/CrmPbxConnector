@@ -1,4 +1,6 @@
 var io = require('socket.io-client');
+var sleep = require('sleep');
+
 var config = require('./config.js').config;
 var database = require('./database.js');
 
@@ -79,6 +81,7 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             var cmd = { "method": "CallLog", "DataStart": str_date_start, "DataEnd": str_date_end };
             console.log(cmd);
             soc.emit('pbx action', cmd);
+            sleep.sleep(3); //wait seconds between two pbx query
         }
     });
 
