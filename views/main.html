@@ -213,7 +213,7 @@
 
     $("#btn_search").click(function () {
       var t = $('#calls_search_results_table').DataTable();
-      t.clear();
+      t.clear().draw();
 
       var myform = document.getElementById("SearchCalls");
       var fd = new FormData(myform);
@@ -226,12 +226,15 @@
         contentType: false,
         type: 'POST',
         success: function (result_query) {
+          //Clear old values
+          t.clear();
           result_query.forEach(element => {
 
             //format date in uman redeable
             var d = new Date(element.begin);
             //console.log(element.begin);
-            element.begin = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + "  " + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+            element.begin=moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
+            //element.begin = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + "  " + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
 
             //Translate in italian type
             element.type = element.type.replace(/incoming/g, "ingresso");

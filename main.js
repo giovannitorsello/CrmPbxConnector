@@ -1,10 +1,10 @@
 
-var du = require('date-utils');
 var express = require('express');
 var bodyParser = require('body-parser');
 var multer = require('multer');
 var schedule = require('node-schedule');
 var session = require('express-session');
+var moment = require('moment');
 var path = require('path');
 
 
@@ -126,13 +126,13 @@ router.get("/main", function (req, res) {
 //Schedule read PBX
 var job_pbx = schedule.scheduleJob('*/5 * * * *', function () {
     //Search every 5 minutes
-    var start_date_search = new Date(new Date() - 86400000);
-    var end_date_search = new Date(new Date());
+    var start_date_search = new Date().setHours(0,0,0,0);
+    var end_date_search = new Date().setHours(24,0,0,0);
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
 });
 
 //Schedule read PBX
-var job_mail = schedule.scheduleJob('* 59 23 * * *', function () {
+var job_mail = schedule.scheduleJob('59 23 * * *', function () {
     mail.sendDailyMail();
 });
 

@@ -1,5 +1,5 @@
 var io = require('socket.io-client');
-var sleep = require('sleep');
+var moment = require('moment');
 
 var config = require('./config.js').config;
 var database = require('./database.js');
@@ -76,12 +76,14 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             token = data.token;
             username = data.username;
             password = data.password;
-            str_date_start = start_date.toFormat("YYYY-MM-DD HH:MI:SS");
-            str_date_end = end_date.toFormat("YYYY-MM-DD HH:MI:SS");
+            str_date_start = moment(start_date).format('YYYY-MM-DD HH:mm:ss');
+            str_date_end = moment(end_date).format('YYYY-MM-DD HH:mm:ss');
+            //str_date_start = moment(start_date).format('YYYY-MM-DD 00:00:00');
+            //str_date_end = moment(end_date).format('YYYY-MM-DD 23:59:00');
+            
             var cmd = { "method": "CallLog", "DataStart": str_date_start, "DataEnd": str_date_end };
             console.log(cmd);
             soc.emit('pbx action', cmd);
-            sleep.sleep(3); //wait seconds between two pbx query
         }
     });
 

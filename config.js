@@ -34,3 +34,5 @@ module.exports = {
                          {username: "ponzo", password: "ponzo2018"}]
     }
 }
+
+/*{"method":"CallLog", "DataStart":"2018-11-19 00:00:00", "DataEnd":"2018-11-21 00:00:00"}*/

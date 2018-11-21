@@ -48,17 +48,23 @@ module.exports = {
   },
   search_calls: function (start_date, end_date, call_type, internal_phone_number, external_phone_number, customer_contact, call_status, callback) {
 
-    start_date = moment(start_date, 'DD/MM/YYYY').toDate().toISOString();
-    end_date = moment(end_date, 'DD/MM/YYYY').toDate().toISOString();
+    //Read italian localized format from UI
+    start_date = moment(start_date, 'DD/MM/YYYY HH:mm:ss');
+    end_date = moment(end_date, 'DD/MM/YYYY HH:mm:ss');
+    //Format string for database query
+    start_date = moment(start_date).format('YYYY-MM-DD HH:mm:ss');
+    end_date = moment(end_date).format('YYYY-MM-DD HH:mm:ss');
+
+
 
     var sql = "SELECT * FROM calls WHERE(";
-    if (start_date) sql += "begin>'" + start_date + "'";
-    if (end_date) sql += " AND begin<'" + end_date + "'";
+    if (start_date) sql += "begin>='" + start_date + "'";
+    if (end_date) sql += " AND begin<='" + end_date + "'";
     if (internal_phone_number) sql += " AND called='" + internal_phone_number + "'";
     if (call_type) sql += " AND type='" + call_type + "'";
     if (call_status) sql += " AND status='" + call_status + "'";
     if (customer_contact) sql += " AND caller='" + customer_contact + "'";
-    sql += ");"
+    sql += ") ORDER BY BEGIN DESC;"
     console.log(sql);
     global.connection_mysql.query(sql, function (err, result) {
       if (err) { console.log("Search error"); }
@@ -69,11 +75,12 @@ module.exports = {
   insert_call: function (call, type) {
     //make unique identifier for call
     var str_obj_call = JSON.stringify(call);
-    var hash_call_id = hash("sha1").update(JSON.stringify(str_obj_call)).digest("base64");
+    var hash_call_id = hash("md5").update(call.begin+call.caller+call.called+call.type+call.status).digest("base64");
     var sql_search_call="SELECT * FROM calls WHERE (hash_call_id=\'" + hash_call_id + "');";
     //find if call exists
     global.connection_mysql.query(sql_search_call, function (err, result) {
-      if (err) {
+      //Insert call is down't exists in database
+      if (result.length===0) {
         var call_flow = call.callflow;
         //extract external number    
         if (call_flow && call_flow.length)
@@ -89,11 +96,11 @@ module.exports = {
           + "'" + call.duration + "',"
           + "'" + str_obj_call + "')";
         global.connection_mysql.query(sql, function (err, result) {
-          if (err) { console.log(err); }
+          if (err) { console.log("Insert error probably duplicate entry."); }
           else console.log("Inserted call " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.stato);
         });
       }
-      else {console.log("Call exists "+hash_call_id);}
+      else {console.log("Call exists "+hash_call_id+"---"+ call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.stato);}
     });
 
   }
