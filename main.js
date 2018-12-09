@@ -43,7 +43,6 @@ app.listen(8088, function () {
     var start_date_search = new Date(new Date().getTime() - 2*(86400000));
     var end_date_search = new Date();
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
-
 });
 
 
@@ -63,17 +62,22 @@ router.post('/search_calls', upload.array(), function (req, res, next) {
     var external_phone_number = req.body.external_phone_number;
     var customer_contact = req.body.customer_contact;
     var status=req.body.status;
+    var calls_search=db.search_calls_normal;
 
     if (call_type === "ingresso")   call_type = "incoming";
     if (call_type === "uscita")     call_type = "outgoing";
 
-    if (status === "risposta")      status = "ANSWERED";
-    if (status === "non risposta")  status = "NO ANSWER";
-    if (status === "occupato")      status = "BUSY";
-
-    db.search_calls(start_date, end_date, call_type,
+    if (status === "N.R. non risposte")     {status = "NO ANSWER"; calls_search=db.search_calls_normal;}
+    if (status === "N.R. evase")            {status = "NO ANSWER"; calls_search=db.double_filter_answer;}
+    if (status === "N.R. da richiamare")    {status = "NO ANSWER"; calls_search=db.double_filter_noanswer;}
+    if (status === "risposta")              {status = "ANSWERED";  calls_search=db.search_calls_normal;}
+    if (status === "occupato")              {status = "BUSY";      calls_search=db.search_calls_normal;}
+    
+    calls_search(start_date, end_date, call_type,
         internal_phone_number, external_phone_number, customer_contact, status,
-        function (result_query) { res.json(result_query); })
+        function (result_query) { 
+            res.json(result_query); 
+        })
 });
 
 

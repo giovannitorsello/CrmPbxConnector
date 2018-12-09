@@ -93,8 +93,10 @@
           <label for="call_type">Risposta/Non risposta</label>
           <select class="form-control" id="status" name="status">
             <option></option>
-            <option>risposta</option>
-            <option>non risposta</option>
+            <option>N.R. non risposte</option>
+            <option>N.R. evase</option>
+            <option>N.R. da richiamare</option>            
+            <option>risposta</option>            
             <option>occupato</option>
           </select>
         </div>
@@ -184,8 +186,12 @@
           tr.removeClass('shown');
         }
         else {
+          var element=row.data();
+          console.log(element);
+          var convs=format_conversations(element);
+          var callf=format_callflow(element);
           // Open this row
-          row.child(format_callflow(row.data())).show();
+          row.child(convs+callf).show();
           tr.addClass('shown');
         }
       });
@@ -230,11 +236,15 @@
           t.clear();
           result_query.forEach(element => {
 
-            //format date in uman redeable
-            var d = new Date(element.begin);
-            //console.log(element.begin);
+            //format date in human redeable
+            var d = new Date(element.begin);          
             element.begin=moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
-            //element.begin = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + "  " + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+            
+            //mark call
+            if((!element.conversations) && element.status==="NO ANSWER")
+                element.begin+="<br><strong>da ricontattare</strong>";
+            if((element.conversations) && element.status==="NO ANSWER")
+                element.begin+="<br><strong>cliente ricontattato</strong>";
 
             //Translate in italian type
             element.type = element.type.replace(/incoming/g, "ingresso");
@@ -242,7 +252,7 @@
             //Translate in italian status
             element.status = element.status.replace(/ANSWERED/g, "RISPOSTA");
             element.status = element.status.replace(/NO ANSWER/g, "NON RISPOSTA");
-            element.status = element.status.replace(/BUSY/g, "OCCUPATO");
+            element.status = element.status.replace(/BUSY/g, "OCCUPATO")
 
             t.row.add(element).draw("false");
           });
@@ -250,28 +260,65 @@
       });
     });
 
+    function format_conversations(data_row) {
+      var conversations=data_row.conversations; 
+      //Parse conversation
+      var str_conversations="<p><h5><strong>Altre conversazioni associate</strong></h5></p>";
+      if(conversations) {
+        console.log("Altre conversazioni associate n.:"+conversations.length);
+        for (var i = 0; i < conversations.length; i++) {
+          //Data formatting
+          var d = new Date(conversations[i].begin);          
+          conversations[i].begin=moment(conversations[i].begin).format('DD/MM/YYYY HH:mm:ss');
+          //type formatting
+          if(conversations[i].type==="outgoing") conversations[i].type="<strong>USCITA</strong>";
+          if(conversations[i].type==="incoming") conversations[i].type="<strong>INGRESSO</strong>";
+          //status formatting
+          if(conversations[i].status==="ANSWERED") conversations[i].status="<strong>RISPOSTA</strong>";
+          if(conversations[i].status==="NO ANSWER") conversations[i].status="<strong>NON RISPOSTA</strong>";
+          if(conversations[i].status==="BUSY") conversations[i].status="<strong>OCCUPATO</strong>";
+
+          str_conversations+="<p>inizio: "+conversations[i].begin+" ";
+          str_conversations+="durata: "+conversations[i].duration+" ";
+          str_conversations+="destinatario: "+conversations[i].caller+"->";
+          str_conversations+="chiamante: "+conversations[i].called+" ";
+          str_conversations+="stato: "+conversations[i].status+" ";
+          str_conversations+="tipo: "+conversations[i].type+"</p>";
+        }
+        return "<div>"+str_conversations+"</div>";
+      }
+      str_conversations+="<div><p>chiamata non risposta non ci sono state conversazioni ulteriori</p><strong>Da ricontattare !!!</strong></div>";
+      return  str_conversations;
+    }
+    
     function format_callflow(data_row) {
 
       var enc = new TextDecoder("utf-8");
       var arrayBuffer = new Uint8Array(data_row.calldata.data).buffer;
       var call_data = enc.decode(arrayBuffer);
-      var call_flow = JSON.parse(call_data).callflow;
+      call_data_obj=JSON.parse(call_data);
+      var call_flow = call_data_obj.callflow;
 
       //Parse call flow
-      console.log(call_flow.length)
-      var str_flow = call_flow[0].dst + "(" + call_flow[0].stato + ")" + "> </br>";
-      for (var i = 0; i < call_flow.length - 1; i++) {
+      console.log("Lunghezza flusso chiamata :"+ call_flow.length)      
+      str_flow ="<p><h5><strong>Inizio flusso chiamata</strong></h5>";
+      if (call_flow[0].dst && call_flow[0].stato)
+        str_flow += "<p> >"+call_flow[0].dst + "(" + call_flow[0].stato + ")" + "> </p>";
+      for (var i = 0; i < call_flow.length-1; i++) {
+        //Pulizia dei comandi ripetuti correzione bug segnalato a Timenet gestione delle code
         if ((call_flow[i].dst !== call_flow[i + 1].dst) ||
-          (call_flow[i].stato !== call_flow[i + 1].stato))
-          str_flow += ">" + call_flow[i + 1].dst + "(" + call_flow[i + 1].stato + ")" + "> </br>";
+          (call_flow[i].stato !== call_flow[i + 1].stato)) {
+          if(call_flow[i].dst) call_flow[i].dst="";
+          if(call_flow[i].stato) call_flow[i].stato="";
+          str_flow += "<p> >" + call_flow[i + 1].dst + "(" + call_flow[i + 1].stato + ")" + "> <p>";
+          }
       }
 
       str_flow = str_flow.replace(/ANSWERED/g, "RISPOSTA");
       str_flow = str_flow.replace(/NO ANSWER/g, "NON RISPOSTA");
       str_flow = str_flow.replace(/BUSY/g, "OCCUPATO");
-
       // `d` is the original data object for the row
-      return '<p>' + str_flow + '</p>';
+      return '<div>' + str_flow + '</div>';
     }
 
 
