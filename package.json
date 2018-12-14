@@ -1,7 +1,7 @@
 {
-  "name": "crmpbxconnector",
+  "name": "CrmPbxConnector",
   "version": "1.0.0",
-  "description": "Pbx to Crm transfer data calls",
+  "description": "Pbx connectoe for CRM",
   "main": "main.js",
   "dependencies": {
     "body-parser": "^1.18.3",

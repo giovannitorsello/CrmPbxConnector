@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="static/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="static/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="static/css/buttons.dataTables.min.css">
+  <link rel="stylesheet" href="static/css/wait_modal.css">
   <link rel="stylesheet" href="static/css/main.css">
 
 
@@ -34,6 +35,7 @@
 <body id="Main">
   <div class="container">
     <h1 class="form-heading">Pbx Monitor</h1>
+    <div class="modal_wait_for_search" id="modal_wait_for_search"></div>
     <form id="SearchCalls" action="/search_calls" method="post">
       <div class="form-group row">
 
@@ -93,10 +95,10 @@
           <label for="call_type">Risposta/Non risposta</label>
           <select class="form-control" id="status" name="status">
             <option></option>
-            <option>N.R. da richiamare</option>                        
-            <option>N.R. non risposte</option>
+            <option>N.R. da richiamare</option>
             <option>N.R. evase</option>
-            <option>risposta</option>            
+            <option>non risposta</option>
+            <option>risposta</option>
             <option>occupato</option>
           </select>
         </div>
@@ -143,16 +145,34 @@
     </table>
   </div>
 
-
+  
   <p class="bottom-text"> Copyright - WIFINETCOM SRL 2018</p>
   </div>
 
   <script type="text/javascript">
+
     $(document).ready(function () {
+
+      //Bind ajax events
+      $(document).ajaxStart(function () {                    
+          $("#btn_search").prop("disabled",true);
+          $("#modal_wait_for_search").show();
+          setTimeout(function(){ }, 3000); 
+        });
+      $(document).ajaxComplete(function () {          
+          $("#btn_search").prop("disabled",false);
+          $("#modal_wait_for_search").hide();                  
+        });
+      $(document).ajaxStop(function () {
+          $("#btn_search").prop("disabled",false);
+          $("#modal_wait_for_search").hide();          
+        });
+
+
       moment().format("DD/MM/YYYY hh:mm A");
 
-      $('#start_date').datetimepicker({locale: 'IT'});
-      $('#end_date').datetimepicker({locale: 'IT'});
+      $('#start_date').datetimepicker({ locale: 'IT' });
+      $('#end_date').datetimepicker({ locale: 'IT' });
 
       var table_calls = $('#calls_search_results_table').DataTable({
         dom: 'Bfrtip',
@@ -186,12 +206,14 @@
           tr.removeClass('shown');
         }
         else {
-          var element=row.data();
+          var element = row.data();
           console.log(element);
-          var convs=format_conversations(element);
-          var callf=format_callflow(element);
+          var call_convs = format_conversations(element);
+          var call_flow = format_callflow(element);
+          var child_text=call_convs+call_flow;
+          if(element.status=="RISPOSTA") child_text=call_flow;
           // Open this row
-          row.child(convs+callf).show();
+          row.child(child_text).show();
           tr.addClass('shown');
         }
       });
@@ -237,14 +259,16 @@
           result_query.forEach(element => {
 
             //format date in human redeable
-            var d = new Date(element.begin);          
-            element.begin=moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
-            
-            //mark call
-            if((!element.conversations) && element.status==="NO ANSWER")
-                element.begin+="<br><strong>da ricontattare</strong>";
-            if((element.conversations) && element.status==="NO ANSWER")
-                element.begin+="<br><strong>cliente ricontattato</strong>";
+            var d = new Date(element.begin);
+            element.begin = moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
+
+            //mark call if related conversations exist
+            if ((!element.conversations) && (element.status === "NO ANSWER" || element.status === "BUSY"))
+              element.begin += "<br><strong>da ricontattare</strong>";
+            else if ((element.conversations) && (element.status === "NO ANSWER" || element.status === "BUSY"))
+              element.begin += "<br><strong>cliente ricontattato</strong>";
+            else if(element.status==="ANSWERED")
+              element.begin += "<br><strong>cliente contattato</strong>";
 
             //Translate in italian type
             element.type = element.type.replace(/incoming/g, "ingresso");
@@ -261,57 +285,57 @@
     });
 
     function format_conversations(data_row) {
-      var conversations=data_row.conversations; 
+      var conversations = data_row.conversations;
       //Parse conversation
-      var str_conversations="<p><h5><strong>Altre conversazioni associate</strong></h5></p>";
-      if(conversations) {
-        console.log("Altre conversazioni associate n.:"+conversations.length);
+      var str_conversations = "<p><h5><strong>Altre conversazioni associate</strong></h5></p>";
+      if (conversations) {
+        console.log("Altre conversazioni associate n.:" + conversations.length);
         for (var i = 0; i < conversations.length; i++) {
           //Data formatting
-          var d = new Date(conversations[i].begin);          
-          conversations[i].begin=moment(conversations[i].begin).format('DD/MM/YYYY HH:mm:ss');
+          var d = new Date(conversations[i].begin);
+          conversations[i].begin = moment(conversations[i].begin).format('DD/MM/YYYY HH:mm:ss');
           //type formatting
-          if(conversations[i].type==="outgoing") conversations[i].type="<strong>USCITA</strong>";
-          if(conversations[i].type==="incoming") conversations[i].type="<strong>INGRESSO</strong>";
+          if (conversations[i].type === "outgoing") conversations[i].type = "<strong>USCITA</strong>";
+          if (conversations[i].type === "incoming") conversations[i].type = "<strong>INGRESSO</strong>";
           //status formatting
-          if(conversations[i].status==="ANSWERED") conversations[i].status="<strong>RISPOSTA</strong>";
-          if(conversations[i].status==="NO ANSWER") conversations[i].status="<strong>NON RISPOSTA</strong>";
-          if(conversations[i].status==="BUSY") conversations[i].status="<strong>OCCUPATO</strong>";
+          if (conversations[i].status === "ANSWERED") conversations[i].status = "<strong>RISPOSTA</strong>";
+          if (conversations[i].status === "NO ANSWER") conversations[i].status = "<strong>NON RISPOSTA</strong>";
+          if (conversations[i].status === "BUSY") conversations[i].status = "<strong>OCCUPATO</strong>";
 
-          str_conversations+="<p>inizio: "+conversations[i].begin+" ";
-          str_conversations+="durata: "+conversations[i].duration+" ";
-          str_conversations+="destinatario: "+conversations[i].caller+"->";
-          str_conversations+="chiamante: "+conversations[i].called+" ";
-          str_conversations+="stato: "+conversations[i].status+" ";
-          str_conversations+="tipo: "+conversations[i].type+"</p>";
+          str_conversations += "<p>inizio: " + conversations[i].begin + " ";
+          str_conversations += "durata: " + conversations[i].duration + " ";
+          str_conversations += "destinatario: " + conversations[i].caller + "->";
+          str_conversations += "chiamante: " + conversations[i].called + " ";
+          str_conversations += "stato: " + conversations[i].status + " ";
+          str_conversations += "tipo: " + conversations[i].type + "</p>";
         }
-        return "<div>"+str_conversations+"</div>";
+        return "<div>" + str_conversations + "</div>";
       }
-      str_conversations+="<div><p>chiamata non risposta non ci sono state conversazioni ulteriori</p><strong>Da ricontattare !!!</strong></div>";
-      return  str_conversations;
+      str_conversations += "<div><p>chiamata non risposta non ci sono state conversazioni ulteriori</p><strong>Da ricontattare !!!</strong></div>";
+      return str_conversations;
     }
-    
+
     function format_callflow(data_row) {
 
       var enc = new TextDecoder("utf-8");
       var arrayBuffer = new Uint8Array(data_row.calldata.data).buffer;
       var call_data = enc.decode(arrayBuffer);
-      call_data_obj=JSON.parse(call_data);
+      call_data_obj = JSON.parse(call_data);
       var call_flow = call_data_obj.callflow;
 
       //Parse call flow
-      console.log("Lunghezza flusso chiamata :"+ call_flow.length)      
-      str_flow ="<p><h5><strong>Inizio flusso chiamata</strong></h5>";
+      console.log("Lunghezza flusso chiamata :" + call_flow.length)
+      str_flow = "<p><h5><strong>Inizio flusso chiamata</strong></h5>";
       if (call_flow[0].dst && call_flow[0].stato)
-        str_flow += "<p> >"+call_flow[0].dst + "(" + call_flow[0].stato + ")" + "> </p>";
-      for (var i = 0; i < call_flow.length-1; i++) {
+        str_flow += "<p> >" + call_flow[0].dst + "(" + call_flow[0].stato + ")" + "> </p>";
+      for (var i = 0; i < call_flow.length - 1; i++) {
         //Pulizia dei comandi ripetuti correzione bug segnalato a Timenet gestione delle code
         if ((call_flow[i].dst !== call_flow[i + 1].dst) ||
           (call_flow[i].stato !== call_flow[i + 1].stato)) {
-          if(call_flow[i].dst) call_flow[i].dst="";
-          if(call_flow[i].stato) call_flow[i].stato="";
+          if (call_flow[i].dst) call_flow[i].dst = "";
+          if (call_flow[i].stato) call_flow[i].stato = "";
           str_flow += "<p> >" + call_flow[i + 1].dst + "(" + call_flow[i + 1].stato + ")" + "> <p>";
-          }
+        }
       }
 
       str_flow = str_flow.replace(/ANSWERED/g, "RISPOSTA");

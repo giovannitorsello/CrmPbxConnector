@@ -40,7 +40,7 @@ app.listen(8088, function () {
     //Start db connection
     db.start_connection();
 
-    var start_date_search = new Date(new Date().getTime() - 2*(86400000));
+    var start_date_search = new Date(new Date().getTime() - 1*(86400000));
     var end_date_search = new Date();
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
 });
@@ -67,11 +67,11 @@ router.post('/search_calls', upload.array(), function (req, res, next) {
     if (call_type === "ingresso")   call_type = "incoming";
     if (call_type === "uscita")     call_type = "outgoing";
 
-    if (status === "N.R. non risposte")     {status = "NO ANSWER"; calls_search=db.search_calls_normal;}
-    if (status === "N.R. evase")            {status = "NO ANSWER"; calls_search=db.double_filter_answer;}
     if (status === "N.R. da richiamare")    {status = "NO ANSWER"; calls_search=db.double_filter_noanswer;}
+    if (status === "N.R. evase")            {status = "NO ANSWER"; calls_search=db.double_filter_answer;}
+    if (status === "non risposta")          {status = "NO ANSWER"; calls_search=db.search_calls_normal;}
     if (status === "risposta")              {status = "ANSWERED";  calls_search=db.search_calls_normal;}
-    if (status === "occupato")              {status = "BUSY";      calls_search=db.search_calls_normal;}
+    if (status === "occupato")              {status = "BUSY";      calls_search=db.double_filter_busy;}
     
     calls_search(start_date, end_date, call_type,
         internal_phone_number, external_phone_number, customer_contact, status,
@@ -130,8 +130,14 @@ router.get("/main", function (req, res) {
 //Schedule read PBX
 var job_pbx = schedule.scheduleJob('*/5 * * * *', function () {
     //Search every 5 minutes
-    var start_date_search = new Date().setHours(0,0,0,0);
-    var end_date_search = new Date().setHours(24,0,0,0);
+    //var start_date_search = new Date().setHours(0,0,0,0);
+    //var end_date_search = new Date().setHours(24,0,0,0);
+    var durationSearchInMinutes = 20;
+    var start_date_search=new Date();
+    var end_date_search=new Date();
+    start_date_search.setMinutes(start_date_search.getMinutes() - durationSearchInMinutes);
+    end_date_search.setMinutes(end_date_search.getMinutes() + 5);
+    
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
 });
 
