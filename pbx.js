@@ -93,7 +93,7 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             calls.forEach(function (call) {
                 //Outgoing calls                        
                 if (is_internal_number(call.caller)) {                    
-                    //Insert only outgoing calls not internal-internal calls
+                    //Insert only outgoing calls not internal-internal calls                    
                     if(!(is_internal_number(call.called)))
                         database.insert_call(call,"outgoing");                        
                 }

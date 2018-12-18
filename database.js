@@ -2,6 +2,8 @@ var global = require('./global.js');
 var mysql = require('mysql');
 var moment = require('moment');
 const hash = require('crypto').createHash;
+var config = require('./config.js').config;
+
 const { StringDecoder } = require('string_decoder');
 
 module.exports = {
@@ -95,7 +97,7 @@ module.exports = {
       else console.log("Search done: " + sql);
 
       //Esce se la ricerca è vuota
-      if(result.length===0) callback(final_result);
+      if (result.length === 0) callback(final_result);
 
       var final_result = [];
       result.forEach(function (element, index) {
@@ -145,7 +147,7 @@ module.exports = {
       }
 
       //Esce se la ricerca è vuota
-      if(result.length===0) callback(final_result);
+      if (result.length === 0) callback(final_result);
 
 
       //Eliminazione chiamate già risposte      
@@ -162,9 +164,19 @@ module.exports = {
         console.log(sql2);
         global.connection_mysql.query(sql2, function (err, result_correlate) {
           if (err) console.log(err);
-          if (!result_correlate || result_correlate.length == 0) //se non trova la correlazione le inserisce nell'elenco delle non risposte.
-            final_result.push(result[index]); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate
-
+          if (!result_correlate || result_correlate.length == 0) { //se non trova la correlazione le inserisce nell'elenco delle non risposte.
+            //Evita i duplicati
+            var b_exists = false;
+            final_result.forEach(function (el, i) {
+              if (el.caller === result[index].caller) {//accoda gli orari di chiamata
+                if(!el.other_calls) el.other_calls=[];
+                if(el.other_calls) el.other_calls.push(result[index]);
+                b_exists = true;
+              }
+            });
+            if (!b_exists) final_result.push(result[index]); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate
+            //Evita i duplicati          
+          }
           if (result_correlate && result_correlate.length > 0) { //Log correlazioni
             console.log("Trovata chiamata correlata con: " + result_correlate.length + "-" + element.begin + "-" + element.caller + ">" + element.called + "-" + element.status);
             for (j = 0; j < result_correlate.length; j++) console.log(result_correlate[j].begin + "-" + result_correlate[j].caller + "->" + result_correlate[j].called + "--" + result_correlate[j].status);
@@ -203,7 +215,7 @@ module.exports = {
       }
 
       //Esce se la ricerca è vuota
-      if(result.length===0) callback(final_result);
+      if (result.length === 0) callback(final_result);
 
       //Eliminazione chiamate già risposte      
       var final_result = [];
@@ -222,16 +234,27 @@ module.exports = {
             Object.assign(result[index], { "conversations": result_correlate }); //inserisce la chiamata nell'elenco delle correlate
             final_result.push(result[index]);  // Marca la chiamata come risposta perchè trova la correlazione
           }
-          if (!result_correlate || result_correlate.length===0) {
-            final_result.push(result[index]); //Inserisce nella lista delle occupate ma sono marcate da richiamare (no conversazioni associate)
+          //se non vi sono chiamate con risposta correlate alla presente
+          if (!result_correlate || result_correlate.length === 0) {
+            //controllo se chiamante non già inserito
+            //Evita i duplicati
+            var b_exists = false;
+            final_result.forEach(function (element, i) {
+              if (element.caller === result[index].caller) {//accoda gli orari di chiamata
+                element.begin += "<br>" + result[index].begin;
+                b_exists = true;
+              }
+            });
+            if (!b_exists) final_result.push(result[index]); //Inserisce nella lista delle occupate ma sono marcate da richiamare (no conversazioni associate)
+            //Evita i duplicati
           }
-          
+
           if (index === result.length - 1)
             callback(final_result);
         });
       });
-  });
-},
+    });
+  },
 
 
   insert_call: function (call, type) {
@@ -250,6 +273,7 @@ module.exports = {
       //Insert call is down't exists in database
       if (result.length === 0) {
         var call_flow = call.callflow;
+        call.stato = status_remap_for_queue(call, type);
         //extract external number    
         if (call_flow && call_flow.length)
           call.dst = call_flow[0].dst
@@ -264,7 +288,7 @@ module.exports = {
           + "'" + call.duration + "',"
           + "'" + str_obj_call + "')";
         global.connection_mysql.query(sql, function (err, result) {
-          if (err) { console.log("Insert error probably duplicate entry."); }
+          if (err) { console.log("Insert error probably duplicate entry. " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.stato); }
           else console.log("Inserted call " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.stato);
         });
       }
@@ -274,3 +298,32 @@ module.exports = {
   }
 }
 
+//gestione delle risposte su una coda
+function status_remap_for_queue(call, type) {
+  var computed_status = call.stato;
+  var call_flow = call.callflow;
+  var b_internal_ans = false; // diventa vero se rispone un interno
+  if (call_flow)
+    call_flow.forEach(function (element, index) {
+      if ((call.stato === "ANSWERED") &&                            //se è marcata risposta a causa di una coda
+        (element.stato === "ANSWERED") &&                         //se viene trovato nel testo
+        (is_internal_number(element.dst))) {                       //una risposta da parte di un numero interno
+        computed_status = "ANSWERED"; b_internal_ans = true;
+      }  //allora la chiamata viene impostata come risposta
+    });
+  //Correzione del problema delle code le chiamate mese in coda sono marcate risposte ma non è detto
+  //Se nel call flow non esistono elementi che hanno dato risposta modifica lo stato della chiamata     
+  if (!b_internal_ans)
+    computed_status = "NO ANSWER";
+  if (!b_internal_ans && call.stato === "BUSY")
+    computed_status = "BUSY";
+  return computed_status;
+}
+
+function is_internal_number(data) {
+  var b = false;
+  config.internal_phone_number.forEach(element => {
+    if (element.username === data) { b = true; }
+  });
+  return b;
+}

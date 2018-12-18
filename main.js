@@ -19,12 +19,12 @@ var mail = require('./mail.js');
 var cleanup = require('./cleanup').cleanup(pbx.close_all_sockets);
 
 //Session data
-var session_data = {name: 'crmpbx', secret: 'wifinetcom2019',cookie: {maxAge: 6./0000}};
+var session_data = { name: 'crmpbx', secret: 'wifinetcom2019', cookie: { maxAge: 6. / 0000 } };
 
 var app = express();
 var router = express.Router();
 var upload = multer(); // for parsing multipart/form-data
-var path_static= path.join(__dirname, 'views');
+var path_static = path.join(__dirname, 'views');
 
 //enforcing
 app.disable('x-powered-by');
@@ -40,9 +40,11 @@ app.listen(8088, function () {
     //Start db connection
     db.start_connection();
 
-    var start_date_search = new Date(new Date().getTime() - 1*(86400000));
-    var end_date_search = new Date();
-    pbx.get_pbx_calls_status(start_date_search, end_date_search);
+    for (var i=7; i>1;i--) {
+        var start_date_search = new Date(new Date().getTime() - i * (86400000));
+        var end_date_search = new Date(new Date().getTime() - (i-1) * (86400000));
+        pbx.get_pbx_calls_status(start_date_search, end_date_search);
+    }
 });
 
 
@@ -61,22 +63,22 @@ router.post('/search_calls', upload.array(), function (req, res, next) {
     var internal_phone_number = req.body.internal_phone_number;
     var external_phone_number = req.body.external_phone_number;
     var customer_contact = req.body.customer_contact;
-    var status=req.body.status;
-    var calls_search=db.search_calls_normal;
+    var status = req.body.status;
+    var calls_search = db.search_calls_normal;
 
-    if (call_type === "ingresso")   call_type = "incoming";
-    if (call_type === "uscita")     call_type = "outgoing";
+    if (call_type === "ingresso") call_type = "incoming";
+    if (call_type === "uscita") call_type = "outgoing";
 
-    if (status === "N.R. da richiamare")    {status = "NO ANSWER"; calls_search=db.double_filter_noanswer;}
-    if (status === "N.R. evase")            {status = "NO ANSWER"; calls_search=db.double_filter_answer;}
-    if (status === "non risposta")          {status = "NO ANSWER"; calls_search=db.search_calls_normal;}
-    if (status === "risposta")              {status = "ANSWERED";  calls_search=db.search_calls_normal;}
-    if (status === "occupato")              {status = "BUSY";      calls_search=db.double_filter_busy;}
-    
+    if (status === "da_richiamare") { status = "NO ANSWER"; calls_search = db.double_filter_noanswer; }
+    if (status === "non_risposta")  { status = "NO ANSWER"; calls_search = db.search_calls_normal; }
+    if (status === "evase")         { status = "NO ANSWER"; calls_search = db.double_filter_answer; }
+    if (status === "risposte")      { status = "ANSWERED"; calls_search = db.search_calls_normal; }
+    if (status === "occupato")      { status = "BUSY"; calls_search = db.double_filter_busy; }
+
     calls_search(start_date, end_date, call_type,
         internal_phone_number, external_phone_number, customer_contact, status,
-        function (result_query) { 
-            res.json(result_query); 
+        function (result_query) {
+            res.json(result_query);
         })
 });
 
@@ -86,9 +88,9 @@ router.use(function (req, res, next) {
     next();
 });
 
-router.get('/',function (req, res) {
-    if(req.sessionID && req.session.account) {        
-        res.redirect('/main?token='+req.sessionID);        
+router.get('/', function (req, res) {
+    if (req.sessionID && req.session.account) {
+        res.redirect('/main?token=' + req.sessionID);
     }
     else
         res.sendFile(path_static + "/login.html");
@@ -97,34 +99,33 @@ router.get('/',function (req, res) {
 router.post('/login', upload.array(), function (req, res, next) {
     var username = req.body.username;
     var password = req.body.password;
-    if(req.sessionID && req.session.account) {        
-        res.redirect('/main?token='+req.sessionID);        
+    if (req.sessionID && req.session.account) {
+        res.redirect('/main?token=' + req.sessionID);
     }
-    
+
     config.admin_accounts.forEach(function auth(account) {
-        if (username === account.username && password === account.password)
-        {
+        if (username === account.username && password === account.password) {
             var timestamp = new Date().getTime();
-            account.timestamp=timestamp;
+            account.timestamp = timestamp;
             req.session.views++;
-            req.session.account=account;            
-            sessions.set(req.sessionID,account)
-            res.redirect('/main?token='+req.sessionID);
+            req.session.account = account;
+            sessions.set(req.sessionID, account)
+            res.redirect('/main?token=' + req.sessionID);
         }
     });
-        
+
     res.redirect('/');
 });
 
 router.get("/main", function (req, res) {
-    var token=req.query.token;
-    if(sessions.has(token)) {
+    var token = req.query.token;
+    if (sessions.has(token)) {
         console.log("Logged in");
         console.log(req.session.account);
         res.sendFile(path_static + "/main.html");
     }
     else
-    res.redirect('/');
+        res.redirect('/');
 });
 
 //Schedule read PBX
@@ -133,11 +134,11 @@ var job_pbx = schedule.scheduleJob('*/5 * * * *', function () {
     //var start_date_search = new Date().setHours(0,0,0,0);
     //var end_date_search = new Date().setHours(24,0,0,0);
     var durationSearchInMinutes = 20;
-    var start_date_search=new Date();
-    var end_date_search=new Date();
+    var start_date_search = new Date();
+    var end_date_search = new Date();
     start_date_search.setMinutes(start_date_search.getMinutes() - durationSearchInMinutes);
     end_date_search.setMinutes(end_date_search.getMinutes() + 5);
-    
+
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
 });
 

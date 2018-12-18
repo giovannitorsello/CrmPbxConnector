@@ -94,12 +94,12 @@
         <div class="col-xs-2 div_call_type">
           <label for="call_type">Risposta/Non risposta</label>
           <select class="form-control" id="status" name="status">
-            <option></option>
-            <option>N.R. da richiamare</option>
-            <option>N.R. evase</option>
-            <option>non risposta</option>
-            <option>risposta</option>
-            <option>occupato</option>
+            <option value=""></option>
+            <option value="da_richiamare">Perse da richiamare</option>
+            <option value="risposte">Risposte direttamente</option>
+            <option value="evase">Risposte e ricontattate</option>
+            <option value="non_risposta">non risposta</option>            
+            <option value="occupato">occupato</option>
           </select>
         </div>
       </div>
@@ -258,13 +258,17 @@
           t.clear();
           result_query.forEach(element => {
 
+            //evidenzia tentativi di richiamata
+            var str_other_calls="(1)";
+            if(element.other_calls) str_other_calls="("+element.other_calls.length+")";
+        
             //format date in human redeable
             var d = new Date(element.begin);
             element.begin = moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
 
             //mark call if related conversations exist
             if ((!element.conversations) && (element.status === "NO ANSWER" || element.status === "BUSY"))
-              element.begin += "<br><strong>da ricontattare</strong>";
+              element.begin += "<br><strong>da ricontattare "+str_other_calls+"</strong>";
             else if ((element.conversations) && (element.status === "NO ANSWER" || element.status === "BUSY"))
               element.begin += "<br><strong>cliente ricontattato</strong>";
             else if(element.status==="ANSWERED")
@@ -286,9 +290,25 @@
 
     function format_conversations(data_row) {
       var conversations = data_row.conversations;
+      var other_calls = data_row.other_calls; //altri temtativi di chiamata
+      //Parse other call
+      var str_other_calls="";
+      if (other_calls) {
+        str_other_calls="<p><h5><strong>Altri tentativi di chiamata</strong></h5></p>";
+        console.log("Altri tentativi di chiamata associati n.:" + other_calls.length);
+        for (var i = 0; i < other_calls.length; i++) {
+          var d = new Date(other_calls[i].begin);
+          other_calls[i].begin = moment(other_calls[i].begin).format('DD/MM/YYYY HH:mm:ss');
+          
+          str_other_calls += "<p> Altro tentativo di chiamata: " 
+            + other_calls[i].begin  
+            +" (chiamante: "+other_calls[i].caller+")"+"</p>";
+        }
+      }
       //Parse conversation
-      var str_conversations = "<p><h5><strong>Altre conversazioni associate</strong></h5></p>";
+      var str_conversations = "";
       if (conversations) {
+        str_conversations = "<p><h5><strong>Altre conversazioni associate</strong></h5></p>";
         console.log("Altre conversazioni associate n.:" + conversations.length);
         for (var i = 0; i < conversations.length; i++) {
           //Data formatting
@@ -312,7 +332,7 @@
         return "<div>" + str_conversations + "</div>";
       }
       str_conversations += "<div><p>chiamata non risposta non ci sono state conversazioni ulteriori</p><strong>Da ricontattare !!!</strong></div>";
-      return str_conversations;
+      return str_other_calls+str_conversations;
     }
 
     function format_callflow(data_row) {
