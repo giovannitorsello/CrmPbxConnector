@@ -3,7 +3,7 @@ module.exports = {
         internal_phone_number: [
             { id: "64420", username: "20", password: "6u6aqa5y" },
             { id: "64421", username: "21", password: "ju4ahu4y" },
-            { id: "64422", username: "22", password: "ana6yzum" },
+            /*{ id: "64422", username: "22", password: "ana6yzum" },*/
             { id: "64423", username: "23", password: "uqyzuneh" },
             { id: "64424", username: "24", password: "gu6a7usu" },
             { id: "64425", username: "25", password: "jynu9uha" }

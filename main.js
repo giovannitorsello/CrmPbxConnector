@@ -40,11 +40,16 @@ app.listen(8088, function () {
     //Start db connection
     db.start_connection();
 
-    for (var i=7; i>1;i--) {
+    var initial_past_day=1;
+    for (var i=initial_past_day; i>initial_past_day-1;i--) {
         var start_date_search = new Date(new Date().getTime() - i * (86400000));
         var end_date_search = new Date(new Date().getTime() - (i-1) * (86400000));
         pbx.get_pbx_calls_status(start_date_search, end_date_search);
     }
+   /* var start_date_search = new Date();start_date_search.setHours(0,0,0,0); 
+    var end_date_search = new Date();  end_date_search.setHours(23,59,59,0); 
+    pbx.get_pbx_calls_status(start_date_search, end_date_search);
+*/
 });
 
 
@@ -133,13 +138,13 @@ var job_pbx = schedule.scheduleJob('*/5 * * * *', function () {
     //Search every 5 minutes
     //var start_date_search = new Date().setHours(0,0,0,0);
     //var end_date_search = new Date().setHours(24,0,0,0);
-    var durationSearchInMinutes = 20;
+ /*   var durationSearchInMinutes = 20;
     var start_date_search = new Date();
     var end_date_search = new Date();
     start_date_search.setMinutes(start_date_search.getMinutes() - durationSearchInMinutes);
     end_date_search.setMinutes(end_date_search.getMinutes() + 5);
 
-    pbx.get_pbx_calls_status(start_date_search, end_date_search);
+    pbx.get_pbx_calls_status(start_date_search, end_date_search);*/
 });
 
 //Schedule read PBX

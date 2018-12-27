@@ -51,7 +51,7 @@ module.exports = {
 
   //Standard search call
   search_calls_normal: function (start_date, end_date, call_type, internal_phone_number, external_phone_number, customer_contact, call_status, callback) {
-
+    var final_result = [];
     //Read italian localized format from UI
     start_date = moment(start_date, 'DD/MM/YYYY HH:mm:ss');
     end_date = moment(end_date, 'DD/MM/YYYY HH:mm:ss');
@@ -71,7 +71,29 @@ module.exports = {
     global.connection_mysql.query(sql, function (err, result) {
       if (err) { console.log("Search error"); }
       else console.log("Search done: " + sql);
-      callback(result);
+      //Prevede le ricerche nulle.
+      if(result.length==0) callback(result);
+
+      //Evita i duplicati         
+      result.forEach(function (element, index) {
+        //Parse callflow
+        element = parse_call_flow_from_database(element);
+        var b_exists = false;
+        final_result.forEach(function (el, i) {
+          if (el.caller === element.caller) {//accoda gli orari di chiamata
+            if (!el.other_calls) el.other_calls = [];
+            if (el.other_calls)
+              el.other_calls.push(element);
+            b_exists = true;
+          }
+        });
+        var qres = status_remap_for_queue(element);
+        var true_status = qres.computed_status;
+        if (!b_exists && true_status === call_status)
+          final_result.push(element); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate        
+        if (index === result.length - 1)
+          callback(final_result);
+      }); //Evita i duplicati    
     });
   },
   //Double filter answer
@@ -82,7 +104,8 @@ module.exports = {
     //Format string for database query
     start_date = moment(start_date).format('YYYY-MM-DD HH:mm:ss');
     end_date = moment(end_date).format('YYYY-MM-DD HH:mm:ss');
-
+    //ricarca tutte le chiamate indifferentemente per poi selezionare solo quelle che
+    // effettivamente hanno avuto risposta
     var sql = "SELECT * FROM calls WHERE(";
     if (start_date) sql += "begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
@@ -111,9 +134,24 @@ module.exports = {
         sql2 += ");";
 
         global.connection_mysql.query(sql2, function (err, result_correlate) {
+          //Se trova chiamate in ingresso o in uscita correlate le inserisce come
+          //campo ausiliario nella chiamata principale, quella che apre il contatto 
+          //giornaliero.
           if (result_correlate && result_correlate.length > 0) {
             Object.assign(result[index], { "conversations": result_correlate }); //inserisce la chiamata nell'elenco delle correlate
-            final_result.push(result[index]);  // Marca la chiamata come risposta perchè trova la correlazione
+            if (check_answer_queue_related(result_correlate) === "ANSWERED") {
+              //Evita i duplicati
+              var b_exists = false;
+              final_result.forEach(function (el, i) {
+                if (el.caller === result[index].caller) {//accoda le successive chiamate
+                  if (!el.other_calls) el.other_calls = [];
+                  if (el.other_calls) el.other_calls.push(result[index]);
+                  b_exists = true;
+                }
+              });
+              if (!b_exists) final_result.push(result[index]); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate
+            }
+            //Evita i duplicati e gestisce la coda
           }
           if (index === result.length - 1)
             callback(final_result);
@@ -169,8 +207,8 @@ module.exports = {
             var b_exists = false;
             final_result.forEach(function (el, i) {
               if (el.caller === result[index].caller) {//accoda gli orari di chiamata
-                if(!el.other_calls) el.other_calls=[];
-                if(el.other_calls) el.other_calls.push(result[index]);
+                if (!el.other_calls) el.other_calls = [];
+                if (el.other_calls) el.other_calls.push(result[index]);
                 b_exists = true;
               }
             });
@@ -260,6 +298,9 @@ module.exports = {
   insert_call: function (call, type) {
     //make unique identifier for call
     var str_obj_call = JSON.stringify(call);
+    //correzione campo con nome italiano se dati scaricati da database
+    if (call.stato && !call.status) call.status = call.stato;  //dati provenienti da database    
+
     var hash_call_id = "";
     if (type === "incoming")
       hash_call_id = hash("md5").update(call.begin + call.caller + call.type + call.status).digest("base64");
@@ -270,10 +311,16 @@ module.exports = {
     var sql_search_call = "SELECT * FROM calls WHERE (hash_call_id=\'" + hash_call_id + "');";
     //find if call exists
     global.connection_mysql.query(sql_search_call, function (err, result) {
-      //Insert call is down't exists in database
-      if (result.length === 0) {
+      //Insert call if doesn't exists in database
+      if (result && result.length === 0) {
         var call_flow = call.callflow;
-        call.stato = status_remap_for_queue(call, type);
+        // Verify status and true dst for incoming call
+        if (type === "incoming") {
+          var qres = status_remap_for_queue(call);
+          call.status = qres.computed_status;
+          if (qres.dst && qres.dst !== "")
+            call.called = qres.dst;
+        }
         //extract external number    
         if (call_flow && call_flow.length)
           call.dst = call_flow[0].dst
@@ -283,7 +330,7 @@ module.exports = {
           + "'" + call.called + "',"
           + "'" + call.dst + "',"
           + "'" + type + "',"
-          + "'" + call.stato + "',"
+          + "'" + call.status + "',"
           + "'" + call.begin + "',"
           + "'" + call.duration + "',"
           + "'" + str_obj_call + "')";
@@ -298,26 +345,58 @@ module.exports = {
   }
 }
 
+// controlla nel caso ci siano chiamate risposta da una coda che 
+// le stesse siano state servite da un interno
+// la funzione lavora su una lista chiamate correlate
+// cioè afferenti allo stesso numeto chiamante o chiamato
+// NON utilizzare su liste di chiamate non correlate tra loro
+function check_answer_queue_related(calls_correlated) {
+  var true_state = "NO ANSWER";
+  calls_correlated.forEach(function (call, i) {
+    //Parse callflow
+    call = parse_call_flow_from_database(call);
+    if (call.type === "incoming") { //valuta il callflow solo per le chiamate in ingresso
+      var qres = status_remap_for_queue(call);
+      true_state = qres.computed_status;
+      if (true_state === "ANSWERED")
+        return true_state;
+    }
+  });
+  return true_state;
+}
+
 //gestione delle risposte su una coda
-function status_remap_for_queue(call, type) {
-  var computed_status = call.stato;
+function status_remap_for_queue(call) {
+  var res = {};
+  var computed_status = "";
+  //correzione campo con nome italiano se dati scaricati da database
+  if (call.stato && !call.status) call.status = call.stato;  //dati provenienti da database    
+  computed_status = call.status;
+
+  var computed_status = call.status; //Il campo stato ANSWERED, ANSWER, BUSY viene controllato con gli interni
   var call_flow = call.callflow;
-  var b_internal_ans = false; // diventa vero se rispone un interno
+  var b_internal_ans = false; // diventa vero se risponde un interno
+  var true_internal = "";
   if (call_flow)
     call_flow.forEach(function (element, index) {
-      if ((call.stato === "ANSWERED") &&                            //se è marcata risposta a causa di una coda
-        (element.stato === "ANSWERED") &&                         //se viene trovato nel testo
-        (is_internal_number(element.dst))) {                       //una risposta da parte di un numero interno
-        computed_status = "ANSWERED"; b_internal_ans = true;
-      }  //allora la chiamata viene impostata come risposta
+      var b_dst_internal = is_internal_number(element.dst);
+      //Calcola se la chiamata è risposta da un interno o solo da una coda.
+      if (b_dst_internal && (call.status === "ANSWERED") && (element.stato === "ANSWERED")) {
+        true_internal = element.dst;
+        b_internal_ans = true;
+      }
     });
   //Correzione del problema delle code le chiamate mese in coda sono marcate risposte ma non è detto
   //Se nel call flow non esistono elementi che hanno dato risposta modifica lo stato della chiamata     
   if (!b_internal_ans)
-    computed_status = "NO ANSWER";
+    res.computed_status = "NO ANSWER";
   if (!b_internal_ans && call.stato === "BUSY")
-    computed_status = "BUSY";
-  return computed_status;
+    res.computed_status = "BUSY";
+  if (b_internal_ans) {
+    res.computed_status = "ANSWERED";
+    res.dst = true_internal;
+  }
+  return res;
 }
 
 function is_internal_number(data) {
@@ -326,4 +405,12 @@ function is_internal_number(data) {
     if (element.username === data) { b = true; }
   });
   return b;
+}
+
+function parse_call_flow_from_database(call) {
+  var decoder = new StringDecoder('utf8');
+  var call_data = decoder.write(call.calldata);
+  call_data_obj = JSON.parse(call_data);
+  call.callflow = call_data_obj.callflow;
+  return call;
 }

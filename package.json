@@ -15,7 +15,7 @@
     "nodemailer": "^4.6.8",
     "path": "^0.12.7",
     "socket.io-client": "^2.1.1",
-    "string_decoder": "^1.1.1"
+    "string_decoder": "^1.2.0"
   },
   "devDependencies": {},
   "scripts": {
