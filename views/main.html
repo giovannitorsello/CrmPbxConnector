@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="static/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="static/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="static/css/buttons.dataTables.min.css">
+  <link rel="stylesheet" href="static/css/kendo.common-material.min.css">
+  <link rel="stylesheet" href="static/css/kendo.material.min.css">  
   <link rel="stylesheet" href="static/css/wait_modal.css">
   <link rel="stylesheet" href="static/css/main.css">
 
@@ -28,17 +30,25 @@
   <script src="static/js/vfs_fonts.js"></script>
   <script src="static/js/buttons.html5.min.js"></script>
   <script src="static/js/buttons.print.min.js"></script>
-
+  <script src="static/js/kendo.all.min.js"></script>
 
 </head>
 
 <body id="Main">
   <div class="container">
     <h1 class="form-heading">Pbx Monitor</h1>
+
+    <!--- Wait animated gif-->
     <div class="modal_wait_for_search" id="modal_wait_for_search"></div>
+
+    <!--- Administrator control only-->
+    <div id="administrator" class="administrator"><input type="file" id="file_calls" name="file_calls" /></div>
+
+    <!--- Statistics summary div-->
+    <div id="statistics" class="statistics"></div>
+
     <form id="SearchCalls" action="/search_calls" method="post">
       <div class="form-group row">
-
         <div class="col-xs-2 start_date">
           <label for="start_date">Inizio</label>
           <div class="input-group date" id="start_date_div" data-target-input="nearest">
@@ -67,7 +77,9 @@
             <option>uscita</option>
           </select>
         </div>
+
       </div>
+      <!--Finish row-->
 
       <div class="form-group row">
         <div class="col-xs-2 div_internal_phone_number">
@@ -103,56 +115,80 @@
           </select>
         </div>
       </div>
-      <div class="form-group row"></div>
+      <!--Finish row-->
+
       <div class="col-xs-2 div_btn_search">
         <label for="trova"></label>
         <div class="dropdown">
           <button id="btn_search" type="button" class="btn btn-primary">Trova</button>
         </div>
       </div>
-  </div>
-  </form>
+    </form>
 
-  <div id="calls_search_results" style="margin-top: 100px">
-    <strong><p id="time_counter"></p><p id="calls_counter"></p></strong><br><strong><p id="customers_counter"></p></strong>
-    <table id="calls_search_results_table" class="table table-striped table-bordered" style="width:100%">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Orario</th>
-          <th>Durata</th>
-          <th>Chiamato</th>
-          <th>Chiamante</th>
-          <th>Destinazione</th>
-          <th>Tipo</th>
-          <th>Stato</th>
-        </tr>
-      </thead>
-      <tbody>
+    <div id="calls_search_results" style="margin-top: 100px">
+      <strong>
+        <p id="time_counter"></p>
+        <p id="calls_counter"></p>
+      </strong><br><strong>
+        <p id="customers_counter"></p>
+      </strong>
+      <table id="calls_search_results_table" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Orario</th>
+            <th>Durata / Durata Effettiva</th>
+            <th>Chiamato</th>
+            <th>Chiamante</th>
+            <th>Destinazione</th>
+            <th>Tipo</th>
+            <th>Stato</th>
+          </tr>
+        </thead>
+        <tbody>
 
-      </tbody>
-      <tfoot>
-        <tr>
-          <th></th>
-          <th>Orario</th>
-          <th>Durata</th>
-          <th>Chiamato</th>
-          <th>Chiamante</th>
-          <th>Destinazione</th>
-          <th>Tipo</th>
-          <th>Stato</th>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th></th>
+            <th>Orario</th>
+            <th>Durata</th>
+            <th>Chiamato</th>
+            <th>Chiamante</th>
+            <th>Destinazione</th>
+            <th>Tipo</th>
+            <th>Stato</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
 
 
-  <p class="bottom-text"> Copyright - WIFINETCOM SRL 2018</p>
+    <p class="bottom-text"> Copyright - WIFINETCOM SRL 2018</p>
   </div>
 
   <script type="text/javascript">
 
+    //customize control for administrator
+    function profile_ui() {
+      jQuery.ajax({
+        url: '/get_account',
+        method: 'POST',
+        success: function (data) {          
+          if (data.role === "administrator") $("#file_calls").show(true);
+          else $("#file_calls").hide(true);
+        }
+      });
+    }
+
     $(document).ready(function () {
+
+      //set privileges on hidden administrator control
+      profile_ui();
+
+      // Set update interval for statistcs div every 10 seconds
+      $('#statistics').kendoWindow({ content: { url: '', template: '', dataType: 'json', iframe: false }, actions: ['refresh'] });
+      setInterval(function () { update_satistics() }, 10000);
 
       //Bind ajax events
       $(document).ajaxStart(function () {
@@ -176,7 +212,8 @@
       $('#end_date').datetimepicker({ locale: 'IT' });
 
       var table_calls = $('#calls_search_results_table').DataTable({
-        dom: 'Bfrtip',
+        dom: 'Blfrtip',
+        "lengthMenu": [[10, 100, 200, 500, -1], [10, 100, 200, 500, "All"]],
         buttons: [
           'copy', 'csv', 'excel', 'pdf', 'print'
         ],
@@ -209,11 +246,11 @@
         else {
           var element = row.data();
           console.log(element);
-          var other_calls=format_other_calls(element);
+          var other_calls = format_other_calls(element);
           var call_convs = format_conversations(element);
           var call_flow = format_callflow(element);
-          var child_text = other_calls+call_convs + call_flow;
-          if (element.status == "RISPOSTA") child_text = other_calls+call_flow;
+          var child_text = other_calls + call_convs + call_flow;
+          if (element.status == "RISPOSTA") child_text = other_calls + call_flow;
           // Open this row
           row.child(child_text).show();
           tr.addClass('shown');
@@ -221,7 +258,6 @@
       });
 
       $.get('/config/internal_phone_number_list', function (data) {
-        console.log("Getting data for internal phone number.");
         $('#internal_phone_number').contents().remove();
         $('#internal_phone_number').append($('<option></option>'));
         for (var j = 0; j < data.length; j++) {
@@ -231,12 +267,34 @@
       });
 
       $.get('/config/external_phone_number_list', function (data) {
-        console.log("Getting data for external phone number.");
         $('#external_phone_number').contents().remove();
         $('#external_phone_number').append($('<option></option>'));
         for (var j = 0; j < data.length; j++) {
           var newOption = $('<option>' + data[j] + '</option>');
           $('#external_phone_number').append(newOption);
+        }
+      });
+    });
+
+
+    $("#file_calls").change(function () {
+      console.log("File calls change.");
+      var fileName = $(this).val();
+      var formData = new FormData();
+      var myFile = $(this)[0].files[0];
+      formData.append('file', myFile);
+      console.log(formData);
+      jQuery.ajax({
+        url: '/import/calls',
+        data: formData,
+        cache: false,
+        contentType: false,
+        processData: false,
+        method: 'POST',
+        success: function (data) {
+          console.log(data);
+          if (data.status === "ok")
+            alert("Importazione di " + data.lenght + " chiamate");
         }
       });
     });
@@ -255,24 +313,34 @@
         processData: false,
         contentType: false,
         type: 'POST',
-        error: function (xhr, ajaxOptions, thrownError) { console.log(thrownError);},
+        error: function (xhr, ajaxOptions, thrownError) { console.log(thrownError); },
         success: function (result_query) {
           //Clear old values
           t.clear();
-          var total_calls=0;
-          var total_seconds=0;
-          var total_customers=0;
-          
+          var total_calls = 0;
+          var total_seconds = 0, total_minutes = 0, total_hour = 0;
+          var total_seconds_bill = 0, total_minutes_bill = 0, total_hour_bill = 0;
+          var total_customers = 0;
+          $("#time_counter").text("Totale minuti conversazioni: " + total_minutes + " (" + total_hour + " ore)");
+          $("#calls_counter").text("Totale chiamate: " + total_calls);
+          $("#customers_counter").text("Totale clienti: " + total_customers);
+
+          //Getting search values
+          var call_status = $("#status").val();
+          var call_type = $("#call_type").val();
+
           result_query.forEach(element => {
 
             //evidenzia tentativi di richiamata
             var str_other_calls = "(1)";
-            var n_other_calls=1;
+            var n_other_calls = 1;
             if (element.other_calls) {
-              n_other_calls=parseInt(element.other_calls.length)+1;
+              n_other_calls = parseInt(element.other_calls.length) + 1;
               str_other_calls = "(" + n_other_calls + ")";
             }
-            total_calls+=n_other_calls; //computo chiamate totali della ricerca
+            if (call_status !== "") total_calls += n_other_calls; //computo chiamate totali della ricerca
+            else total_calls++;
+
             total_customers++; //computo totale dei clienti
 
             //format date in human redeable
@@ -296,16 +364,23 @@
             element.status = element.status.replace(/BUSY/g, "OCCUPATO")
 
             //Conversion in minutes
-            total_seconds+=parseFloat(element.duration);
-            element.duration=Number(parseFloat(element.duration)/60).toFixed(2);
-            var total_minutes=Number(parseFloat(total_seconds)/60).toFixed(2);
-            var total_hour=Number(parseFloat(total_minutes)/60).toFixed(2);
+            total_seconds += parseFloat(element.duration);
+            call_minutes = Number(parseFloat(element.duration) / 60).toFixed(2);
+            total_minutes = Number(parseFloat(total_seconds) / 60).toFixed(2);
+            total_hour = Number(parseFloat(total_minutes) / 60).toFixed(2);
 
+            //Conversion in minutes
+            total_seconds_bill += parseFloat(element.billsec);
+            call_minutes_bill = Number(parseFloat(element.billsec) / 60).toFixed(2);
+            total_minutes_bill = Number(parseFloat(total_seconds) / 60).toFixed(2);
+            total_hour_bill = Number(parseFloat(total_minutes) / 60).toFixed(2);
+
+            element.duration = call_minutes + "  /  " + call_minutes_bill;
             t.row.add(element).draw("false");
 
-            $("#time_counter").text("Totale minuti conversazioni: "+ total_minutes+" ("+total_hour+" ore)");
-            $("#calls_counter").text("Totale chiamate: "+ total_calls);
-            $("#customers_counter").text("Totale clienti: "+ total_customers);
+            $("#time_counter").text("Totale minuti conversazioni: " + total_minutes_bill + " (" + total_hour_bill + " ore)");
+            $("#calls_counter").text("Totale chiamate: " + total_calls);
+            $("#customers_counter").text("Totale clienti: " + total_customers);
           });
         }
       });
@@ -320,11 +395,19 @@
         console.log("Altri tentativi di chiamata associati n.:" + other_calls.length);
         for (var i = 0; i < other_calls.length; i++) {
           var d = new Date(other_calls[i].begin);
+          //localization
           other_calls[i].begin = moment(other_calls[i].begin).format('DD/MM/YYYY HH:mm:ss');
+          other_calls[i].status = other_calls[i].status.replace(/ANSWERED/g, "RISPOSTA");
+          other_calls[i].status = other_calls[i].status.replace(/NO ANSWER/g, "NON RISPOSTA");
+          other_calls[i].status = other_calls[i].status.replace(/BUSY/g, "OCCUPATO")
+          other_calls[i].callflow = JSON.stringify(other_calls[i].callflow);
 
+          console.log(other_calls[i]);
           str_other_calls += "<p> Altro tentativo di chiamata: "
-            + other_calls[i].begin
-            + " (chiamante: " + other_calls[i].caller + ")" + "</p>";
+            + "<strong> Stato: " + other_calls[i].status + "</strong>"
+            + "<strong> Orario: " + other_calls[i].begin + "</strong>"
+            + " (Chiamante: " + other_calls[i].caller + ")"
+            + "</br> (Call flow: " + other_calls[i].callflow + ")</p>";
         }
       }
       return str_other_calls
@@ -392,6 +475,66 @@
       return '<div>' + str_flow + '</div>';
     }
 
+    function update_satistics() {
+      var statistics_div = $("#statistics");
+      // extract statistc data from db
+      jQuery.ajax({
+        url: '/get_statistics',
+        cache: false,
+        contentType: false,
+        processData: false,
+        method: 'POST',
+        success: function (data) {
+          statistics_div.empty();
+          var date = new Date();
+          /***** Statistiche mensili chiamate effettuate ******/
+          var str_html = "<p><strong>Statistiche mensili chiamate effettuate</strong></p>";
+          str_html += "<table class='stat_internal_phones'>";
+          str_html += "<tr><td>Chiamate effettuate</td><td>" + data.outgoing_calls_in_month + "</td></tr>";
+          str_html += "<tr><td>Minuti chiamate effettuate</td><td>" + data.minutes_outgoing_calls_in_month + "</td></tr>";
+          str_html += "<tr><td>Minuti soglia</td><td>" + data.minutes_treshold_outgoing_call_in_month + "</td></tr>";
+          str_html += "<tr><td>Minuti extra-soglia</td><td>" + data.minutes_overtreshold_outgoing_call_in_month + "</td></tr>";
+          str_html += "</table>";
+          str_html += "<br><br>";
+          /*
+          str_html += "<p class='stat_report'>Chiamate effettuate nel mese corrente: " + data.outgoing_calls_in_month + "</p>";
+          str_html += "<p class='stat_report'>Minuti chiamate effettuate nel mese corrente: " + data.minutes_outgoing_calls_in_month + "</p>";
+          str_html += "<p class='stat_report'>Minuti soglia mensile: " + data.minutes_treshold_outgoing_call_in_month + "</p>";
+          str_html += "<p class='stat_report'>Minuti fuori soglia mensile: " + data.minutes_overtreshold_outgoing_call_in_month + "</p>";
+          */
+          /***** Statistiche giornaliere interni ******/
+          str_html += "<p><strong>Statistiche giornaliere</strong></p>"
+          str_html += "<table class='stat_internal_phones'>"
+          str_html += "<thead><tr><td><b>Interno</b></td><td><b>Ricevute</b></td><td><b>Effettuate</b></td></thead>"
+
+          var internal_phone = data.internal_phones;
+          var total_incoming = 0, total_outgoing = 0;
+          if (internal_phone) {
+            internal_phone.forEach(function (internal, index) {
+              var inc_calls = internal.work_incoming_calls;
+              var inc_work_hour = Math.floor(internal.work_daily_time_incoming_calls / 3600);
+              var inc_work_minutes = Math.floor((internal.work_daily_time_incoming_calls - inc_work_hour * 3600) / 60);
+              var inc_work_seconds = (internal.work_daily_time_incoming_calls - inc_work_hour * 3600 - inc_work_minutes * 60);
+              var str_inc = inc_calls + " (" + inc_work_hour + ":" + inc_work_minutes + ":" + inc_work_seconds + ")";
+              total_incoming += inc_calls;
+
+              var out_calls = internal.work_outgoing_calls;
+              var out_work_hour = Math.floor(internal.work_daily_time_outgoing_calls / 3600);
+              var out_work_minutes = Math.floor((internal.work_daily_time_outgoing_calls - out_work_hour * 3600) / 60);
+              var out_work_seconds = (internal.work_daily_time_outgoing_calls - out_work_hour * 3600 - out_work_minutes * 60);
+              var str_out = out_calls + " (" + out_work_hour + ":" + out_work_minutes + ":" + out_work_seconds + ")";
+              total_outgoing += out_calls;
+
+              str_html += "<tr><td>" + internal.phone + "</td><td>" + str_inc + "</td><td>" + str_out + "</td>";
+            });
+          }
+          str_html += "<tr><td>Totale</td><td>" + total_incoming + "</td><td>" + total_outgoing + "</td>";
+          str_html += "</table>"
+
+          statistics_div.append(str_html);
+        }
+      });
+    }
 
   </script>
 </body>

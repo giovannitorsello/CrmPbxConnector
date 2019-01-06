@@ -48,3 +48,19 @@ td.details-control {
 tr.shown td.details-control {
   background: url('../images/details_close.png') no-repeat center center;
 }
+
+
+.statistics {
+  position: absolute;
+  left: 1%;
+  top: 10%; 
+}
+
+table, th, td  {
+  width: 25em;
+  border: 1px solid black;
+  padding: 0.1em;
+  margin-left: 0.1em;
+  margin-right: 0.2em;
+  margin-bottom: 0.2em;
+}

@@ -6,25 +6,25 @@ var database = require('./database.js');
 
 //var i_inc_ans = 1, i_out_ans = 1, i_inc_noans = 1, i_out_noans = 1;
 
-var start_date=null, end_date=null;
+var start_date = null, end_date = null;
 
 module.exports = {
     get_pbx_calls_status: function (start_date_search, end_date_search) {
         //Force socket closing to be sure that Timenet server doesn't switch in protected mode
-        socket_map.forEach(function callback(soc, internal_phone, Map) {soc.emit("disconnect");soc.close();});
+        socket_map.forEach(function callback(soc, internal_phone, Map) { soc.emit("disconnect"); soc.close(); });
         socket_map.clear();
 
         // Set global date range for search in PBX databse
-        start_date=start_date_search; end_date=end_date_search;
-        
+        start_date = start_date_search; end_date = end_date_search;
+
         //Find call list for wach internal number
         config.internal_phone_number.forEach(function callback(internal) {
-            var internal_phone=internal.username;
-            var password= internal.password;
-            console.log("Getting info for: "+internal_phone);
+            var internal_phone = internal.username;
+            var password = internal.password;
+            console.log("Getting info for: " + internal_phone);
             var socket = io.connect('https://my.cloudpbx.it:30644', { secure: true, rejectUnauthorized: false });
             socket_map.set(internal_phone, socket);
-            registerSocketEventListeners(socket, internal_phone,password);
+            registerSocketEventListeners(socket, internal_phone, password);
         }); //End iteration forEach between internal_phone maps
     },
     //close socket before exit
@@ -38,10 +38,11 @@ module.exports = {
 }
 
 function is_internal_number(data) {
-    var b=false;
-    config.internal_phone_number.forEach(element => {             
-        if(element.username===data) {b=true;}
-    });
+    var b = false;
+    var internals = config.internal_phone_number;
+    for (var j = 0; j < internals.length; j++)
+        if (internals[j].username === data) { b = true; }
+
     return b;
 }
 
@@ -80,7 +81,7 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             str_date_end = moment(end_date).format('YYYY-MM-DD HH:mm:ss');
             //str_date_start = moment(start_date).format('YYYY-MM-DD 00:00:00');
             //str_date_end = moment(end_date).format('YYYY-MM-DD 23:59:00');
-            
+
             var cmd = { "method": "CallLog", "DataStart": str_date_start, "DataEnd": str_date_end };
             console.log(cmd);
             soc.emit('pbx action', cmd);
@@ -92,18 +93,18 @@ function registerSocketEventListeners(soc, internal_phone, password) {
             var calls = data.rows;
             calls.forEach(function (call) {
                 //Outgoing calls                        
-                if (is_internal_number(call.caller)) {                    
+                if (is_internal_number(call.caller)) {
                     //Insert only outgoing calls not internal-internal calls                    
-                    if(!(is_internal_number(call.called)))
-                        database.insert_call(call,"outgoing");                        
+                    if (!(is_internal_number(call.called)))
+                        database.insert_call(call, "outgoing");
                 }
                 //Incoming calls
-                if (is_internal_number(call.called)) {                    
+                if (is_internal_number(call.called)) {
                     //Insert only outgoing calls not internal-internal calls
-                    if(!(is_internal_number(call.caller)))
-                        database.insert_call(call,"incoming");                    
+                    if (!(is_internal_number(call.caller)))
+                        database.insert_call(call, "incoming");
                 }
-                
+
             });
             soc.emit("disconnect");
             soc.close();
