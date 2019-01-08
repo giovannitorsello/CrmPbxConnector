@@ -46,6 +46,7 @@ module.exports = {
     if (start_date) sql += "begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
     if (internal_phone_number) sql += " AND called='" + internal_phone_number + "'";
+    if (external_phone_number) sql += " AND dst='" + external_phone_number + "'";
     if (call_type) sql += " AND type='" + call_type + "'";
     if (call_status) sql += " AND status='" + call_status + "'";
     if (customer_contact) sql += " AND caller='" + customer_contact + "'";
@@ -99,6 +100,7 @@ module.exports = {
     if (start_date) sql += "begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
     if (internal_phone_number) sql += " AND called='" + internal_phone_number + "'";
+    if (external_phone_number) sql += " AND dst='" + external_phone_number + "'";
     if (call_type) sql += " AND type='" + call_type + "'";
     //if (call_status) sql += " AND status='" + call_status + "'";//Ricerca tutte le chiamate
     if (customer_contact) sql += " AND caller='" + customer_contact + "'";
@@ -213,8 +215,7 @@ module.exports = {
     //Format string for database query
     start_date = moment(start_date).format('YYYY-MM-DD HH:mm:ss');
     end_date = moment(end_date).format('YYYY-MM-DD HH:mm:ss');
-    //ricarca tutte le chiamate indifferentemente per poi selezionare solo quelle che
-    // effettivamente hanno avuto risposta
+    
     var sql = "SELECT * FROM calls WHERE(";
     if (start_date) sql += "begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
@@ -298,6 +299,7 @@ module.exports = {
     if (start_date) sql += " AND begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
     if (internal_phone_number) sql += " AND called='" + internal_phone_number + "'";
+    if (external_phone_number) sql += " AND dst='" + external_phone_number + "'";
     if (call_type) sql += " AND type='" + call_type + "'";
     //if (call_status) sql += " AND status='" + call_status + "'";//ricarca tutte le chiamate del periodo
     //if (customer_contact) sql += " AND caller='" + customer_contact + "'";
@@ -368,6 +370,7 @@ module.exports = {
     if (start_date) sql += " AND begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
     if (internal_phone_number) sql += " AND called='" + internal_phone_number + "'";
+    if (external_phone_number) sql += " AND dst='" + external_phone_number + "'";
     if (call_type) sql += " AND type='" + call_type + "'";
     //if (call_status) sql += " AND status='" + call_status + "'";//ricarca tutte le chiamate del periodo
     //if (customer_contact) sql += " AND caller='" + customer_contact + "'";

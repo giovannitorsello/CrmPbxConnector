@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="static/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="static/css/buttons.dataTables.min.css">
   <link rel="stylesheet" href="static/css/kendo.common-material.min.css">
-  <link rel="stylesheet" href="static/css/kendo.material.min.css">  
+  <link rel="stylesheet" href="static/css/kendo.material.min.css">
   <link rel="stylesheet" href="static/css/wait_modal.css">
   <link rel="stylesheet" href="static/css/main.css">
 
@@ -169,12 +169,14 @@
 
   <script type="text/javascript">
 
+    var internal_phone_numbers = [];
+    var external_phone_numbers = [];
     //customize control for administrator
     function profile_ui() {
       jQuery.ajax({
         url: '/get_account',
         method: 'POST',
-        success: function (data) {          
+        success: function (data) {
           if (data.role === "administrator") $("#file_calls").show(true);
           else $("#file_calls").hide(true);
         }
@@ -188,7 +190,7 @@
 
       // Set update interval for statistcs div every 10 seconds
       $('#statistics').kendoWindow({ content: { url: '', template: '', dataType: 'json', iframe: false }, actions: ['refresh'] });
-      setInterval(function () { update_satistics() }, 10000);
+      setInterval(function () { update_statistics() }, 10000);
 
       //Bind ajax events
       $(document).ajaxStart(function () {
@@ -258,6 +260,7 @@
       });
 
       $.get('/config/internal_phone_number_list', function (data) {
+        internal_phone_numbers = data;
         $('#internal_phone_number').contents().remove();
         $('#internal_phone_number').append($('<option></option>'));
         for (var j = 0; j < data.length; j++) {
@@ -267,10 +270,12 @@
       });
 
       $.get('/config/external_phone_number_list', function (data) {
+        external_phone_numbers = data;
         $('#external_phone_number').contents().remove();
         $('#external_phone_number').append($('<option></option>'));
         for (var j = 0; j < data.length; j++) {
-          var newOption = $('<option>' + data[j] + '</option>');
+          var str_description = data[j].description + " (" + data[j].phone + ")";
+          var newOption = $('<option value="' + data[j].phone + '" label="' + str_description + '">' + str_description + '</option>');
           $('#external_phone_number').append(newOption);
         }
       });
@@ -362,6 +367,12 @@
             element.status = element.status.replace(/ANSWERED/g, "RISPOSTA");
             element.status = element.status.replace(/NO ANSWER/g, "NON RISPOSTA");
             element.status = element.status.replace(/BUSY/g, "OCCUPATO")
+
+
+            //format destination
+            element.dst = format_destination(element.dst);
+            if(!element.dst) element.dst="sconosciuto";
+
 
             //Conversion in minutes
             total_seconds += parseFloat(element.duration);
@@ -475,7 +486,14 @@
       return '<div>' + str_flow + '</div>';
     }
 
-    function update_satistics() {
+    function format_destination(dest) {
+      for (var j = 0; j < external_phone_numbers.length; j++) {
+        var el = external_phone_numbers[j];
+        if (el.phone === dest) return el.description + " (" + el.phone + ")";
+      }
+    }
+
+    function update_statistics() {
       var statistics_div = $("#statistics");
       // extract statistc data from db
       jQuery.ajax({
@@ -496,14 +514,9 @@
           str_html += "<tr><td>Minuti extra-soglia</td><td>" + data.minutes_overtreshold_outgoing_call_in_month + "</td></tr>";
           str_html += "</table>";
           str_html += "<br><br>";
-          /*
-          str_html += "<p class='stat_report'>Chiamate effettuate nel mese corrente: " + data.outgoing_calls_in_month + "</p>";
-          str_html += "<p class='stat_report'>Minuti chiamate effettuate nel mese corrente: " + data.minutes_outgoing_calls_in_month + "</p>";
-          str_html += "<p class='stat_report'>Minuti soglia mensile: " + data.minutes_treshold_outgoing_call_in_month + "</p>";
-          str_html += "<p class='stat_report'>Minuti fuori soglia mensile: " + data.minutes_overtreshold_outgoing_call_in_month + "</p>";
-          */
+         
           /***** Statistiche giornaliere interni ******/
-          str_html += "<p><strong>Statistiche giornaliere</strong></p>"
+          str_html += "<p><strong>Statistiche giornaliere interni</strong></p>"
           str_html += "<table class='stat_internal_phones'>"
           str_html += "<thead><tr><td><b>Interno</b></td><td><b>Ricevute</b></td><td><b>Effettuate</b></td></thead>"
 
@@ -530,6 +543,31 @@
           }
           str_html += "<tr><td>Totale</td><td>" + total_incoming + "</td><td>" + total_outgoing + "</td>";
           str_html += "</table>"
+          str_html += "<br>"
+
+
+          /***** statistiche giornaliere esterni *****/ 
+          str_html += "<p><strong>Statistiche giornaliere numerazioni</strong></p>"
+          str_html += "<table class='stat_external_phones'>"
+          str_html += "<thead><tr><td><b>Descrizione</b></td><td><b>Risposte</b></td><td><b>Perse</b></td></thead>"
+
+          var external_phones = data.external_phones;
+          var total_answered=0, total_noanswer=0;
+          if (external_phones) {
+            external_phones.sort((a,b) => (a.noanswer_calls > b.noanswer_calls) ? -1 : ((b.noanswer_calls > a.noanswer_calls) ? 1 : 0));
+            external_phones.forEach(function (external, index) {              
+              var answered_calls=external.answered_calls;
+              var noanswer_calls=external.noanswer_calls;
+              console.log(external);
+              total_answered+=answered_calls;
+              total_noanswer+=noanswer_calls;
+              var str_description= external.description +" ("+external.phone+")";
+              str_html += "<tr><td>" + str_description + "</td><td>"+answered_calls+"</td><td>" +external.noanswer_calls+ "</td>";
+            });
+          }
+          str_html += "<tr><td>Totale</td><td>" + total_answered + "</td><td>" + total_noanswer + "</td>";
+          str_html += "</table>"
+
 
           statistics_div.append(str_html);
         }

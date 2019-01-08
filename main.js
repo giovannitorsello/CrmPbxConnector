@@ -198,8 +198,44 @@ var job_pbx = schedule.scheduleJob('*/5 * * * *', function () {
 });
 
 function make_statistics() {
+    statistics_external_phone_daily();
     statistics_internal_phone_daily();
     minutes_consuming_outgoing_calls();
+}
+
+function statistics_external_phone_daily() {
+    //Init statistic array for internal phones
+    statistics.external_phones = [];
+    //prepare internal phones statistics structure
+    config.external_phone_number.forEach(function (external, index_external) {
+        statistics.external_phones[index_external] = {};
+        statistics.external_phones[index_external].phone = external.phone;
+        statistics.external_phones[index_external].description = external.description;
+        statistics.external_phones[index_external].answered_calls = 0;
+        statistics.external_phones[index_external].noanswer_calls = 0;
+    });
+    var date = new Date();
+    var start_date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    var end_date = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    //Format in italian conversion inside for DB function for query
+    start_date = moment(start_date).format('DD/MM/YYYY HH:mm:ss');
+    end_date = moment(end_date).format('DD/MM/YYYY HH:mm:ss');
+
+    //Compute outgoing call time data in the last moth
+    db.get_call(start_date, end_date, "incoming", "", function (res) {
+        if (res.status && res.status === "OK") {
+            var query_result = res.query_results;
+            query_result.forEach(function (call, index_call) {
+                statistics.external_phones.forEach(function (external, index_external) {
+                    if (external.phone === call.dst) {
+                        if(call.status==="ANSWERED")    statistics.external_phones[index_external].answered_calls++
+                        if(call.status==="NO ANSWER")   statistics.external_phones[index_external].noanswer_calls++;
+                    }
+                });
+                if (index_call === query_result.length - 1) { }
+            });
+        }
+    });
 }
 
 function statistics_internal_phone_daily() {
@@ -218,7 +254,7 @@ function statistics_internal_phone_daily() {
 
     var date = new Date();
     var start_date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    var end_date   = new Date(date.getFullYear(), date.getMonth(), date.getDate()+1);
+    var end_date = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
     //Format in italian conversion inside for DB function for query
     start_date = moment(start_date).format('DD/MM/YYYY HH:mm:ss');
     end_date = moment(end_date).format('DD/MM/YYYY HH:mm:ss');
@@ -234,7 +270,7 @@ function statistics_internal_phone_daily() {
                         statistics.internal_phones[index_internal].work_incoming_calls++;
                     }
                 });
-                if (index_call === query_result.length - 1) {}
+                if (index_call === query_result.length - 1) { }
             });
         }
     });
@@ -244,13 +280,13 @@ function statistics_internal_phone_daily() {
         if (res.status && res.status === "OK") {
             var query_result = res.query_results;
             query_result.forEach(function (call, index_call) {
-                statistics.internal_phones.forEach(function (internal, index_internal) {                    
+                statistics.internal_phones.forEach(function (internal, index_internal) {
                     if ((internal.phone === call.caller) && (!is_internal_number(call.called))) {
                         statistics.internal_phones[index_internal].work_daily_time_outgoing_calls += call.billsec;
                         statistics.internal_phones[index_internal].work_outgoing_calls++;
                     }
                 });
-                if (index_call === query_result.length - 1) {}
+                if (index_call === query_result.length - 1) { }
             });
         }
     });
@@ -321,7 +357,7 @@ function is_internal_number(data) {
     var b = false;
     var internals = config.internal_phone_number;
     for (var j = 0; j < internals.length; j++)
-      if (internals[j].username === data) { b = true; }
-  
+        if (internals[j].username === data) { b = true; }
+
     return b;
-  }
+}
