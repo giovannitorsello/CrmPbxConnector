@@ -59,7 +59,6 @@ app.listen(8088, function () {
     db.start_connection();
     make_statistics();
 
-
     var initial_past_day = 1;
     for (var i = initial_past_day; i > initial_past_day - 1; i--) {
         var start_date_search = new Date(new Date().getTime() - i * (86400000));
@@ -221,15 +220,31 @@ function statistics_external_phone_daily() {
     start_date = moment(start_date).format('DD/MM/YYYY HH:mm:ss');
     end_date = moment(end_date).format('DD/MM/YYYY HH:mm:ss');
 
-    //Compute outgoing call time data in the last moth
-    db.get_call(start_date, end_date, "incoming", "", function (res) {
+    //Incoming call NO ANSWER in real time
+    db.double_filter_noanswer(start_date, end_date, "incoming", "", "", "", "", function (calls){
+        calls.forEach(function(call, index){
+            statistics.external_phones.forEach(function (external, index_external) {
+                if (external.phone === call.dst) {   
+                    if(call.status==="NO ANSWER" || call.status==="BUSY")                 
+                        statistics.external_phones[index_external].noanswer_calls++;
+                        //db.insert_statistic("statistics",JSON.stringify(statistics));
+                }
+            });
+        });
+    }); 
+
+    //Incoming call ANSWER in real time
+    db.get_call(start_date, end_date, "incoming", "ANSWERED", function (res) {
         if (res.status && res.status === "OK") {
             var query_result = res.query_results;
             query_result.forEach(function (call, index_call) {
                 statistics.external_phones.forEach(function (external, index_external) {
                     if (external.phone === call.dst) {
-                        if(call.status==="ANSWERED")    statistics.external_phones[index_external].answered_calls++
-                        if(call.status==="NO ANSWER")   statistics.external_phones[index_external].noanswer_calls++;
+                        if(call.status==="ANSWERED")    
+                        {
+                            statistics.external_phones[index_external].answered_calls++;
+                            //db.insert_statistic("statistics",JSON.stringify(statistics));                     
+                        }
                     }
                 });
                 if (index_call === query_result.length - 1) { }
@@ -346,9 +361,14 @@ function download_calls_data_from_pbx() {
 
 
 //Schedule send email
+//var job_mail = schedule.scheduleJob('*/3 * * * *', function () {
 /*
-var job_mail = schedule.scheduleJob('59 23 * * *', function () {
-    //mail.sendDailyMail();
+var job_mail = schedule.scheduleJob('37 21 * * *', function () {
+    //Order statistics event
+    var extr_phone=statistics.external_phones;
+    extr_phone.sort((a, b) => (a.noanswer_calls > b.noanswer_calls) ? -1 : ((b.noanswer_calls > a.noanswer_calls) ? 1 : 0));            
+    statistics.external_phones=extr_phone;    
+    mail.sendDailyMail(statistics);
 });
 */
 

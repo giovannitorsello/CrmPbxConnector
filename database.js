@@ -73,11 +73,11 @@ module.exports = {
         //Ricalcolo stato e destinazione
         var qres = status_remap_for_queue(element);
         var true_status = qres.computed_status;
-        var true_dest = qres.dst;
+        /*var true_dest = qres.dst;
         if (true_dest) {
           element.dst = true_dest;
           element.called = true_dest;
-        }
+        }*/
 
         if ((!b_exists && true_status === call_status) || call_status === "")
           final_result.push(element); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate        
@@ -215,7 +215,7 @@ module.exports = {
     //Format string for database query
     start_date = moment(start_date).format('YYYY-MM-DD HH:mm:ss');
     end_date = moment(end_date).format('YYYY-MM-DD HH:mm:ss');
-    
+
     var sql = "SELECT * FROM calls WHERE(";
     if (start_date) sql += "begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
@@ -265,8 +265,9 @@ module.exports = {
         if (qres.dst && qres.dst !== "") call.called = qres.dst;
 
         //extract external number    
-        if (call_flow && call_flow.length)
-          call.dst = call_flow[0].dst
+        if (call_flow && call_flow.length) call.dst = call_flow[0].dst
+        if(!call.dst) call.dst="sconosciuto";
+
         var sql = "INSERT INTO calls (hash_call_id,caller,called,dst,type,status,begin,duration,billsec,calldata) VALUES ("
           + "'" + hash_call_id + "',"
           + "'" + call.caller + "',"
@@ -312,12 +313,11 @@ module.exports = {
         console.log("Ricerca chiamate non risposte ed occupate. Risultati n. " + result.length);
       }
 
-      //Esce se la ricerca è vuota
-      if (result.length === 0) callback(final_result);
-
-
       //Eliminazione chiamate già risposte      
       var final_result = [];
+      //Esce se la ricerca è vuota
+      if (!result || result.length === 0) callback(final_result);
+
       result.forEach(function (element, index) {
         //Parse callflow
         result[index] = parse_call_flow_from_database(result[index]);
@@ -342,7 +342,9 @@ module.exports = {
                 b_exists = true;
               }
             });
-            if (!b_exists) final_result.push(result[index]); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate            
+            if (!b_exists && check_noans_callflow(result[index])) {
+              final_result.push(result[index]); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate            
+            }
             //Evita i duplicati          
           }
           if (result_correlate && result_correlate.length > 0) { //Log correlazioni
@@ -519,3 +521,18 @@ function parse_call_flow_from_database(call) {
   return call;
 }
 
+function check_noans_callflow(call) {
+  var call_flow = call.callflow;
+  var b_noans = true;
+  if (call_flow && call.type === "incoming") {
+    for (var i = 0; i < call_flow.length; i++) {
+      var element = call_flow[i];
+      var b_dst_internal = is_internal_number(element.dst);
+      if( b_dst_internal && (element.stato === "ANSWERED")){
+        b_noans=false;
+        return b_noans;
+      }
+    }
+  }
+  return true;
+}

@@ -35,7 +35,11 @@
 </head>
 
 <body id="Main">
-  <div class="container">
+
+  <!--- Statistics summary div-->
+  <div id="statistics" class="statistics"></div>
+
+  <div id="container" class="container">
     <h1 class="form-heading">Pbx Monitor</h1>
 
     <!--- Wait animated gif-->
@@ -43,9 +47,6 @@
 
     <!--- Administrator control only-->
     <div id="administrator" class="administrator"><input type="file" id="file_calls" name="file_calls" /></div>
-
-    <!--- Statistics summary div-->
-    <div id="statistics" class="statistics"></div>
 
     <form id="SearchCalls" action="/search_calls" method="post">
       <div class="form-group row">
@@ -181,6 +182,7 @@
           else $("#file_calls").hide(true);
         }
       });
+
     }
 
     $(document).ready(function () {
@@ -190,7 +192,7 @@
 
       // Set update interval for statistcs div every 10 seconds
       $('#statistics').kendoWindow({ content: { url: '', template: '', dataType: 'json', iframe: false }, actions: ['refresh'] });
-      setInterval(function () { update_statistics() }, 10000);
+      setInterval(function () { update_statistics(); }, 10000);
 
       //Bind ajax events
       $(document).ajaxStart(function () {
@@ -247,7 +249,6 @@
         }
         else {
           var element = row.data();
-          console.log(element);
           var other_calls = format_other_calls(element);
           var call_convs = format_conversations(element);
           var call_flow = format_callflow(element);
@@ -323,18 +324,19 @@
           //Clear old values
           t.clear();
           var total_calls = 0;
+          var total_customers = 0;
           var total_seconds = 0, total_minutes = 0, total_hour = 0;
           var total_seconds_bill = 0, total_minutes_bill = 0, total_hour_bill = 0;
-          var total_customers = 0;
-          $("#time_counter").text("Totale minuti conversazioni: " + total_minutes + " (" + total_hour + " ore)");
-          $("#calls_counter").text("Totale chiamate: " + total_calls);
-          $("#customers_counter").text("Totale clienti: " + total_customers);
 
           //Getting search values
           var call_status = $("#status").val();
           var call_type = $("#call_type").val();
 
+
           result_query.forEach(element => {
+
+            //computo totale dei clienti
+            total_customers++;
 
             //evidenzia tentativi di richiamata
             var str_other_calls = "(1)";
@@ -342,11 +344,10 @@
             if (element.other_calls) {
               n_other_calls = parseInt(element.other_calls.length) + 1;
               str_other_calls = "(" + n_other_calls + ")";
+              total_calls += n_other_calls;
             }
-            if (call_status !== "") total_calls += n_other_calls; //computo chiamate totali della ricerca
-            else total_calls++;
-
-            total_customers++; //computo totale dei clienti
+            else
+              total_calls++;
 
             //format date in human redeable
             var d = new Date(element.begin);
@@ -371,7 +372,7 @@
 
             //format destination
             element.dst = format_destination(element.dst);
-            if(!element.dst) element.dst="sconosciuto";
+            if (!element.dst) element.dst = "sconosciuto";
 
 
             //Conversion in minutes
@@ -507,6 +508,7 @@
           var date = new Date();
           /***** Statistiche mensili chiamate effettuate ******/
           var str_html = "<p><strong>Statistiche mensili chiamate effettuate</strong></p>";
+          str_html += "<button id=\"print\" onclick=\"printContent('id name of your div');\" >Stampa</button>";
           str_html += "<table class='stat_internal_phones'>";
           str_html += "<tr><td>Chiamate effettuate</td><td>" + data.outgoing_calls_in_month + "</td></tr>";
           str_html += "<tr><td>Minuti chiamate effettuate</td><td>" + data.minutes_outgoing_calls_in_month + "</td></tr>";
@@ -514,7 +516,7 @@
           str_html += "<tr><td>Minuti extra-soglia</td><td>" + data.minutes_overtreshold_outgoing_call_in_month + "</td></tr>";
           str_html += "</table>";
           str_html += "<br><br>";
-         
+
           /***** Statistiche giornaliere interni ******/
           str_html += "<p><strong>Statistiche giornaliere interni</strong></p>"
           str_html += "<table class='stat_internal_phones'>"
@@ -546,23 +548,22 @@
           str_html += "<br>"
 
 
-          /***** statistiche giornaliere esterni *****/ 
+          /***** statistiche giornaliere esterni *****/
           str_html += "<p><strong>Statistiche giornaliere numerazioni</strong></p>"
           str_html += "<table class='stat_external_phones'>"
           str_html += "<thead><tr><td><b>Descrizione</b></td><td><b>Risposte</b></td><td><b>Perse</b></td></thead>"
 
           var external_phones = data.external_phones;
-          var total_answered=0, total_noanswer=0;
+          var total_answered = 0, total_noanswer = 0;
           if (external_phones) {
-            external_phones.sort((a,b) => (a.noanswer_calls > b.noanswer_calls) ? -1 : ((b.noanswer_calls > a.noanswer_calls) ? 1 : 0));
-            external_phones.forEach(function (external, index) {              
-              var answered_calls=external.answered_calls;
-              var noanswer_calls=external.noanswer_calls;
-              console.log(external);
-              total_answered+=answered_calls;
-              total_noanswer+=noanswer_calls;
-              var str_description= external.description +" ("+external.phone+")";
-              str_html += "<tr><td>" + str_description + "</td><td>"+answered_calls+"</td><td>" +external.noanswer_calls+ "</td>";
+            external_phones.sort((a, b) => (a.noanswer_calls > b.noanswer_calls) ? -1 : ((b.noanswer_calls > a.noanswer_calls) ? 1 : 0));
+            external_phones.forEach(function (external, index) {
+              var answered_calls = external.answered_calls;
+              var noanswer_calls = external.noanswer_calls;
+              total_answered += answered_calls;
+              total_noanswer += noanswer_calls;
+              var str_description = external.description + " (" + external.phone + ")";
+              str_html += "<tr><td>" + str_description + "</td><td>" + answered_calls + "</td><td>" + external.noanswer_calls + "</td>";
             });
           }
           str_html += "<tr><td>Totale</td><td>" + total_answered + "</td><td>" + total_noanswer + "</td>";
@@ -570,10 +571,33 @@
 
 
           statistics_div.append(str_html);
+
+
+          //control superposition between statistics and container
+          var position_container = $("#container").offset();
+          var position_statistics = $("#statistics").offset();
+          //if (position_statistics.left + $("#statistics").width() > position_container.left) {            
+          var left_container = 1.2 * (position_statistics.left + $("#statistics").width());
+          $("#container").parent().css({ position: 'relative' });
+          $("#container").css({ left: left_container, position: 'absolute' });
+          //}
         }
       });
     }
 
+    //Event to print detailed statistics
+    function printContent(el) {            
+      var doc = document.implementation.createHTMLDocument('');
+      var style="<style>.stat_internal_phones {font-size: 9pt;} .stat_external_phones {font-size: 10pt;}</style>";
+      var title="<title>Stampa delle statistiche giornaliere</title>";
+      var headstr = "<html><head>"+style+title+"</head><body>";
+      var footstr = "</body>";
+      var content=$("#statistics").html();  
+      var win = window.open("", "Stampa statistiche", "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=800,height=800,top=");
+      win.document.body.innerHTML = headstr + content + footstr;         
+      win.document.getElementById("print").remove();
+      win.print();      
+    }
   </script>
 </body>
 
