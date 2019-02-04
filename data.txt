@@ -1,0 +1,3 @@
+xSqTuluXMjr9gT3jldl2Xmjy7knXYcJu4
+http://localhost:8088/get_today_answered_calls?password=xSqTuluXMjr9gT3jldl2Xmjy7knXYcJu4
+bool(false)

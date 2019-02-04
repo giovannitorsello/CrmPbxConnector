@@ -13,6 +13,8 @@ var fs = require('fs');
 var xlsx = require('xlsx');
 var xlsx_node = require('node-xlsx');
 var xlsx_json = require('xlsx-parse-json');
+//need for external programs
+const crypto = require('crypto');
 
 //local requirements
 var config = require('./config.js').config;
@@ -73,6 +75,67 @@ app.listen(8088, function () {
  */
 });
 
+function encrypt(obj, password) {
+    if (password.length !== 32) return "";
+    var AES_METHOD = 'aes-256-cbc';
+    let iv = "1111111111111111";
+    let cipher = crypto.createCipheriv('aes-256-cbc', new Buffer(password), new Buffer(iv));
+    let encrypted = cipher.update(JSON.stringify(obj));
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
+
+app.use("/get_today_noanswer_calls", function (req, res, next) {
+    var password = req.query.password;
+    if (!password || password === "") { next(); return; }
+
+    var start_date = moment().startOf('day');
+    var end_date = moment().endOf('day');
+    var call_type = "incoming";
+    var status = "NO ANSWER";
+    db.double_filter_noanswer(start_date, end_date, call_type, "", "", "", status,
+        function (result_query) {
+            var export_data = [];
+            result_query.forEach(function (call, index) {
+                delete call.calldata; delete call.callflow; delete call.other_calls;delete call.hash_call_id; delete call.id;
+                export_data.push(call);
+
+                if (index === result_query.length-1) {
+                    var crypted = encrypt(export_data, password);
+                    res.setHeader('Content-type', "application/octet-stream");
+                    res.setHeader('Content-disposition', 'attachment; filename=file.txt');
+                    res.send(crypted);                    
+                    next();
+                }
+            })
+        });
+});
+
+app.use("/get_today_answered_calls", function (req, res, next) {
+    var password = req.query.password;
+    if (!password || password === "") { next(); return; }
+
+    var start_date = moment().startOf('day');
+    var end_date = moment().endOf('day');
+    var call_type = "incoming";
+    var status = "ANSWERED";
+    db.search_calls_normal(start_date, end_date, call_type, "", "", "", status,
+    function (result_query) {
+        var export_data = [];
+        result_query.forEach(function (call, index) {
+            delete call.calldata; delete call.callflow; delete call.other_calls;delete call.hash_call_id; delete call.id;
+            export_data.push(call);
+
+            if (index === result_query.length-1) {
+                var crypted = encrypt(export_data, password);
+                res.setHeader('Content-type', "application/octet-stream");
+                res.setHeader('Content-disposition', 'attachment; filename=file.txt');
+                res.send(crypted);                    
+                next();
+            }
+        })
+    });
+});
 
 app.get('/config/internal_phone_number_list', function (request, response) {
     response.json(config.internal_phone_number);
@@ -221,17 +284,17 @@ function statistics_external_phone_daily() {
     end_date = moment(end_date).format('DD/MM/YYYY HH:mm:ss');
 
     //Incoming call NO ANSWER in real time
-    db.double_filter_noanswer(start_date, end_date, "incoming", "", "", "", "", function (calls){
-        calls.forEach(function(call, index){
+    db.double_filter_noanswer(start_date, end_date, "incoming", "", "", "", "", function (calls) {
+        calls.forEach(function (call, index) {
             statistics.external_phones.forEach(function (external, index_external) {
-                if (external.phone === call.dst) {   
-                    if(call.status==="NO ANSWER" || call.status==="BUSY")                 
+                if (external.phone === call.dst) {
+                    if (call.status === "NO ANSWER" || call.status === "BUSY")
                         statistics.external_phones[index_external].noanswer_calls++;
-                        //db.insert_statistic("statistics",JSON.stringify(statistics));
+                    //db.insert_statistic("statistics",JSON.stringify(statistics));
                 }
             });
         });
-    }); 
+    });
 
     //Incoming call ANSWER in real time
     db.get_call(start_date, end_date, "incoming", "ANSWERED", function (res) {
@@ -240,8 +303,7 @@ function statistics_external_phone_daily() {
             query_result.forEach(function (call, index_call) {
                 statistics.external_phones.forEach(function (external, index_external) {
                     if (external.phone === call.dst) {
-                        if(call.status==="ANSWERED")    
-                        {
+                        if (call.status === "ANSWERED") {
                             statistics.external_phones[index_external].answered_calls++;
                             //db.insert_statistic("statistics",JSON.stringify(statistics));                     
                         }
