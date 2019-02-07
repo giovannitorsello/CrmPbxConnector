@@ -18,7 +18,7 @@ module.exports = {
             {phone: "08331692236", description: 'Acque Puglia'},                   //Acquepure Italia SRL Puglia
             {phone: "0912747795",  description: 'Acque Palermo'},                  //Acquepure Italia SRL Sicilia Palermo
             {phone: "0942388006",  description: 'Acque Messina'},                  //Acquepure Italia SRL Sicilia Messina
-            {phone: "0950973722",  description: 'Acque Sicilia'},                  //Acquepure Italia SRL Sicilia Catania
+            {phone: "0950973722",  description: 'Acque Catania'},                  //Acquepure Italia SRL Sicilia Catania
             {phone: "0982640787",  description: 'Acque Calabria'},                 //Acquepure Italia SRL Calabria
             {phone: "0508068095",  description: 'Acque Toscana'},                  //Acquepure Italia SRL Toscana
             {phone: "0833721510",  description: 'Idros Centro Sud 1'},             //IdroServiceItalia SRL Divisione Centro Sud - Presicce           
