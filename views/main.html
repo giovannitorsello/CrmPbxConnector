@@ -21,6 +21,8 @@
   <script src="static/js/bootstrap.min.js"></script>
   <script src="static/js/moment.js"></script>
   <script src="static/js/moment-it.js"></script>
+  <script src="static/js/moment-timezone-with-data.min.js"></script>
+  <script src="static/js/moment-timezone-with-data-2012-2022.min.js"></script>
   <script src="static/js/tempusdominus-bootstrap-4.min.js"></script>
   <script src="static/js/jquery.dataTables.min.js"></script>
   <script src="static/js/dataTables.buttons.min.js"></script>
@@ -169,6 +171,14 @@
   </div>
 
   <script type="text/javascript">
+    //locale settings
+    if (window.Intl && typeof window.Intl === "object") {
+      //Assume it's supported, lets localize!
+      console.log("Internazionalizzazione.");
+      var timedifference = new Date().getTimezoneOffset();
+      console.log("Timedifference: " + timedifference);
+      console.log("Timezone: " + moment.tz.guess());
+    }
 
     var internal_phone_numbers = [];
     var external_phone_numbers = [];
@@ -211,6 +221,7 @@
 
 
       moment().format("DD/MM/YYYY hh:mm A");
+      moment().locale('it');
 
       $('#start_date').datetimepicker({ locale: 'IT' });
       $('#end_date').datetimepicker({ locale: 'IT' });
@@ -309,8 +320,27 @@
       var t = $('#calls_search_results_table').DataTable();
       t.clear().draw();
 
+      //Clear old values
+      t.clear();
+      var total_calls = 0;
+      var total_customers = 0;
+      var total_seconds = 0, total_minutes = 0, total_hour = 0;
+      var total_seconds_bill = 0, total_minutes_bill = 0, total_hour_bill = 0;
+      $("#time_counter").text("Totale minuti conversazioni: " + total_minutes_bill + " (" + total_hour_bill + " ore)");
+      $("#calls_counter").text("Totale chiamate: " + total_calls);
+      $("#customers_counter").text("Totale clienti: " + total_customers);
+      
+      // Localtime to UTC conversion before submit
       var myform = document.getElementById("SearchCalls");
       var fd = new FormData(myform);
+      var startDateField = fd.get("start_date");
+      var endDateField = fd.get("end_date");
+      var td_timezone = new Date().getTimezoneOffset(); //Timezone shift computation
+      startDateField = moment(startDateField, 'DD/MM/YYYY HH:mm:ss').add(td_timezone, 'minutes').format('DD/MM/YYYY HH:mm:ss');
+      endDateField = moment(endDateField, 'DD/MM/YYYY HH:mm:ss').add(td_timezone, 'minutes').format('DD/MM/YYYY HH:mm:ss');
+      fd.set("start_date", startDateField);
+      fd.set("end_date", endDateField);
+      // END localtime to UTC conversion before submit
 
       $.ajax({
         url: "/search_calls",
@@ -321,12 +351,6 @@
         type: 'POST',
         error: function (xhr, ajaxOptions, thrownError) { console.log(thrownError); },
         success: function (result_query) {
-          //Clear old values
-          t.clear();
-          var total_calls = 0;
-          var total_customers = 0;
-          var total_seconds = 0, total_minutes = 0, total_hour = 0;
-          var total_seconds_bill = 0, total_minutes_bill = 0, total_hour_bill = 0;
 
           //Getting search values
           var call_status = $("#status").val();
@@ -349,9 +373,11 @@
             else
               total_calls++;
 
-            //format date in human redeable
-            var d = new Date(element.begin);
-            element.begin = moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
+            //format date in human readable
+            var d_UTC = new Date(element.begin);
+            var td_timezone = -(new Date().getTimezoneOffset());
+            element.begin = moment(element.begin).add(td_timezone, 'minutes').format('DD/MM/YYYY HH:mm:ss');
+            //element.begin = moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
 
             //mark call if related conversations exist
             if ((!element.conversations) && (element.status === "NO ANSWER" || element.status === "BUSY"))
@@ -586,17 +612,17 @@
     }
 
     //Event to print detailed statistics
-    function printContent(el) {            
+    function printContent(el) {
       var doc = document.implementation.createHTMLDocument('');
-      var style="<style>.stat_internal_phones {font-size: 9pt;} .stat_external_phones {font-size: 10pt;}</style>";
-      var title="<title>Stampa delle statistiche giornaliere</title>";
-      var headstr = "<html><head>"+style+title+"</head><body>";
+      var style = "<style>.stat_internal_phones {font-size: 9pt;} .stat_external_phones {font-size: 10pt;}</style>";
+      var title = "<title>Stampa delle statistiche giornaliere</title>";
+      var headstr = "<html><head>" + style + title + "</head><body>";
       var footstr = "</body>";
-      var content=$("#statistics").html();  
+      var content = $("#statistics").html();
       var win = window.open("", "Stampa statistiche", "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=800,height=800,top=");
-      win.document.body.innerHTML = headstr + content + footstr;         
+      win.document.body.innerHTML = headstr + content + footstr;
       win.document.getElementById("print").remove();
-      win.print();      
+      win.print();
     }
   </script>
 </body>

@@ -1,5 +1,6 @@
 module.exports = {
     config: {
+        locale: "it-IT",
         internal_phone_number: [
             { id: "64420", username: "20", password: "6u6aqa5y"}, //Acquepure
             { id: "64421", username: "21", password: "ju4ahu4y"}, //Acquepure
