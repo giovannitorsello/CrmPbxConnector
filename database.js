@@ -45,11 +45,17 @@ module.exports = {
     var sql = "SELECT * FROM calls WHERE(";
     if (start_date) sql += "begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
-    if (internal_phone_number) sql += " AND called='" + internal_phone_number + "'";
+
+    if (internal_phone_number && call_type==="incoming") sql += " AND called='" + internal_phone_number + "'";
+    if (internal_phone_number && call_type==="outgoing") sql += " AND caller='" + internal_phone_number + "'";
+    
     if (external_phone_number) sql += " AND dst='" + external_phone_number + "'";
     if (call_type) sql += " AND type='" + call_type + "'";
     if (call_status) sql += " AND status='" + call_status + "'";
-    if (customer_contact) sql += " AND caller='" + customer_contact + "'";
+
+    if (customer_contact  && call_type==="incoming") sql += " AND caller='" + customer_contact + "'";
+    if (customer_contact  && call_type==="outgoing") sql += " AND called='" + customer_contact + "'";
+    
     sql += ") ORDER BY BEGIN DESC;"
     console.log(sql);
     global.connection_mysql.query(sql, function (err, result) {
@@ -99,11 +105,17 @@ module.exports = {
     var sql = "SELECT * FROM calls WHERE(";
     if (start_date) sql += "begin>='" + start_date + "'";
     if (end_date) sql += " AND begin<='" + end_date + "'";
-    if (internal_phone_number) sql += " AND called='" + internal_phone_number + "'";
+
+    if (internal_phone_number && call_type==="incoming") sql += " AND called='" + internal_phone_number + "'";
+    if (internal_phone_number && call_type==="outgoing") sql += " AND caller='" + internal_phone_number + "'";
+    
     if (external_phone_number) sql += " AND dst='" + external_phone_number + "'";
     if (call_type) sql += " AND type='" + call_type + "'";
     //if (call_status) sql += " AND status='" + call_status + "'";//Ricerca tutte le chiamate
-    if (customer_contact) sql += " AND caller='" + customer_contact + "'";
+
+    if (customer_contact && call_type==="incoming") sql += " AND caller='" + customer_contact + "'";
+    if (customer_contact && call_type==="outgoing") sql += " AND called='" + customer_contact + "'";
+
     sql += ") ORDER BY BEGIN DESC;"
     console.log(sql);
     global.connection_mysql.query(sql, function (err, result) {

@@ -189,12 +189,14 @@ router.get('/', function (req, res) {
 router.post('/login', upload.array(), function (req, res, next) {
     var username = req.body.username;
     var password = req.body.password;
+    var bauth=false;
     if (req.sessionID && req.session.account) {
         res.redirect('/main?token=' + req.sessionID);
     }
 
     config.admin_accounts.forEach(function auth(account) {
         if (username === account.username && password === account.password) {
+            bauth=true;
             var timestamp = new Date().getTime();
             account.timestamp = timestamp;
             req.session.views++;
@@ -204,7 +206,8 @@ router.post('/login', upload.array(), function (req, res, next) {
         }
     });
 
-    res.redirect('/');
+    //to login page if  is not authenticated
+    if(!bauth) res.redirect('/');
 });
 
 router.get("/main", function (req, res) {
