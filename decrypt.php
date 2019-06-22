@@ -15,13 +15,14 @@ function RandomPassword($len)
 //must by 32 character
 $password =RandomPassword(32);
 
+//$server="www.wifinetcom.net";
 $server="www.wifinetcom.net";
-
 //URL ANSWERED CALLS
 $url_ans="http://".$server.":8088/get_today_answered_calls?password=".$password;
 
 //URL NO ANSWER CALLS
 $url_noans="http://".$server.":8088/get_today_noanswer_calls?password=".$password;
+//echo $url_noans;
 
 //Download encrypted data - no answer calls
 $crypted_data =  file_get_contents($url_noans);
@@ -40,5 +41,6 @@ $decrypt=openssl_decrypt($crypted_data_bin, AES_METHOD, $password, OPENSSL_RAW_D
 
 //print
 echo $decrypt;
+echo "\n";
 
 ?>

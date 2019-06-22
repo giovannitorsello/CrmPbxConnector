@@ -71,8 +71,12 @@ app.listen(8088, function () {
 
     /* var start_date_search = new Date();start_date_search.setHours(0,0,0,0); 
      var end_date_search = new Date();  end_date_search.setHours(23,59,59,0); 
-     pbx.get_pbx_calls_status(start_date_search, end_date_search);
- */
+     pbx.get_pbx_calls_status(start_date_search, end_date_search);     
+ 
+    var start_date_search=moment("2019-03-01", "YYYY-MM-DD");
+    var end_date_search=moment("2019-03-02", "YYYY-MM-DD");
+    pbx.get_pbx_calls_status(start_date_search, end_date_search);*/
+
 });
 
 function encrypt(obj, password) {
@@ -96,15 +100,23 @@ app.use("/get_today_noanswer_calls", function (req, res, next) {
     db.double_filter_noanswer(start_date, end_date, call_type, "", "", "", status,
         function (result_query) {
             var export_data = [];
+            //send empty data
+            if (result_query.length === 0) {
+                var crypted = encrypt(export_data, password);
+                res.setHeader('Content-type', "application/octet-stream");
+                res.setHeader('Content-disposition', 'attachment; filename=file.txt');
+                res.send(crypted);
+                next();
+            }
             result_query.forEach(function (call, index) {
-                delete call.calldata; delete call.callflow; delete call.other_calls;delete call.hash_call_id; delete call.id;
+                delete call.calldata; delete call.callflow; delete call.other_calls; delete call.hash_call_id; delete call.id;
                 export_data.push(call);
 
-                if (index === result_query.length-1) {
+                if (index === result_query.length - 1) {
                     var crypted = encrypt(export_data, password);
                     res.setHeader('Content-type', "application/octet-stream");
                     res.setHeader('Content-disposition', 'attachment; filename=file.txt');
-                    res.send(crypted);                    
+                    res.send(crypted);
                     next();
                 }
             })
@@ -120,21 +132,29 @@ app.use("/get_today_answered_calls", function (req, res, next) {
     var call_type = "incoming";
     var status = "ANSWERED";
     db.search_calls_normal(start_date, end_date, call_type, "", "", "", status,
-    function (result_query) {
-        var export_data = [];
-        result_query.forEach(function (call, index) {
-            delete call.calldata; delete call.callflow; delete call.other_calls;delete call.hash_call_id; delete call.id;
-            export_data.push(call);
-
-            if (index === result_query.length-1) {
+        function (result_query) {
+            var export_data = [];
+            //send empty data
+            if (result_query.length === 0) {
                 var crypted = encrypt(export_data, password);
                 res.setHeader('Content-type', "application/octet-stream");
                 res.setHeader('Content-disposition', 'attachment; filename=file.txt');
-                res.send(crypted);                    
+                res.send(crypted);
                 next();
-            }
-        })
-    });
+            }            
+            result_query.forEach(function (call, index) {
+                delete call.calldata; delete call.callflow; delete call.other_calls; delete call.hash_call_id; delete call.id;
+                export_data.push(call);
+
+                if (index === result_query.length - 1) {
+                    var crypted = encrypt(export_data, password);
+                    res.setHeader('Content-type', "application/octet-stream");
+                    res.setHeader('Content-disposition', 'attachment; filename=file.txt');
+                    res.send(crypted);
+                    next();
+                }
+            })
+        });
 });
 
 app.get('/config/internal_phone_number_list', function (request, response) {
@@ -189,14 +209,14 @@ router.get('/', function (req, res) {
 router.post('/login', upload.array(), function (req, res, next) {
     var username = req.body.username;
     var password = req.body.password;
-    var bauth=false;
+    var bauth = false;
     if (req.sessionID && req.session.account) {
         res.redirect('/main?token=' + req.sessionID);
     }
 
     config.admin_accounts.forEach(function auth(account) {
         if (username === account.username && password === account.password) {
-            bauth=true;
+            bauth = true;
             var timestamp = new Date().getTime();
             account.timestamp = timestamp;
             req.session.views++;
@@ -207,7 +227,7 @@ router.post('/login', upload.array(), function (req, res, next) {
     });
 
     //to login page if  is not authenticated
-    if(!bauth) res.redirect('/');
+    if (!bauth) res.redirect('/');
 });
 
 router.get("/main", function (req, res) {
