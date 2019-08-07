@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="static/css/tempusdominus-bootstrap-4.min.css">
   <link rel="stylesheet" href="static/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="static/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="static/css/jquery-ui.min.css">
+  <link rel="stylesheet" href="static/css/jquery-ui.structure.min.css">
+  <link rel="stylesheet" href="static/css/jquery-ui.theme.min.css">
   <link rel="stylesheet" href="static/css/buttons.dataTables.min.css">
   <link rel="stylesheet" href="static/css/kendo.common-material.min.css">
   <link rel="stylesheet" href="static/css/kendo.material.min.css">
@@ -33,7 +36,7 @@
   <script src="static/js/buttons.html5.min.js"></script>
   <script src="static/js/buttons.print.min.js"></script>
   <script src="static/js/kendo.all.min.js"></script>
-
+  <script src="static/js/jquery-ui.min.js"></script>
 </head>
 
 <body id="Main">
@@ -166,6 +169,12 @@
       </table>
     </div>
 
+    <div id="dialog_wait_data_formatting" title="Attesa browser">
+      <p id="wait_message"></p> 
+      <p>I dati sono stati scaricati dal database.</p> 
+      <p>Ora il browser sta ordinando i dati.</p> 
+      <p>Attendere per favore.</p>
+    </div>
 
     <p class="bottom-text"> Copyright - WIFINETCOM SRL 2018</p>
   </div>
@@ -196,6 +205,14 @@
     }
 
     $(document).ready(function () {
+
+      $("#dialog_wait_data_formatting").dialog({
+        minWidth: 500,
+        minHeight: 250,
+        autoOpen: false,  
+        modal: true,      
+        hide: {effect: "explode",duration: 500}        
+      });      
 
       //set privileges on hidden administrator control
       profile_ui();
@@ -317,6 +334,11 @@
     });
 
     $("#btn_search").click(function () {
+      //block button to avoid multiple press      
+      $("#btn_search").prop('disabled','true');
+      $("#dialog_wait_data_formatting").dialog("option","title","Scarico i dati dal database.").dialog('open');      
+      
+
       var t = $('#calls_search_results_table').DataTable();
       t.clear().draw();
 
@@ -341,7 +363,8 @@
       fd.set("start_date", startDateField);
       fd.set("end_date", endDateField);
       // END localtime to UTC conversion before submit
-
+      //Block button search
+      
       $.ajax({
         url: "/search_calls",
         data: fd,
@@ -351,17 +374,19 @@
         type: 'POST',
         error: function (xhr, ajaxOptions, thrownError) { console.log(thrownError); },
         success: function (result_query) {
-
+      
+          $("#dialog_wait_data_formatting").dialog("option","title","Dati scaricati. Ordino i dati.").dialog('open');      
+      
           //Getting search values
           var call_status = $("#status").val();
           var call_type = $("#call_type").val();
-
-
+          
+          // Begin data presentation
           result_query.forEach(element => {
 
             //computo totale dei clienti
             total_customers++;
-
+            
             //evidenzia tentativi di richiamata
             var str_other_calls = "(1)";
             var n_other_calls = 1;
@@ -416,10 +441,19 @@
             element.duration = call_minutes + "  /  " + call_minutes_bill;
             t.row.add(element).draw("false");
 
+            if(total_customers===result_query.lenght-1){
+              $("#btn_search").prop('disabled','false');
+              $("#dialog_wait_data_formatting").dialog('close');
+            }
+
             $("#time_counter").text("Totale minuti conversazioni: " + total_minutes_bill + " (" + total_hour_bill + " ore)");
             $("#calls_counter").text("Totale chiamate: " + total_calls);
             $("#customers_counter").text("Totale clienti: " + total_customers);
           });
+
+          //Unlock button
+          $("#btn_search").prop('disabled','false');
+          $("#dialog_wait_data_formatting").dialog('close');
         }
       });
     });
