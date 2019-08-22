@@ -1,4 +1,11 @@
+var fs = require('fs');
+        
+
 module.exports = {
+    readConfigFromFile: function(file){
+        this.config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+        if(this.config===null) return null;
+    },
     config: {
         locale: "it-IT",
         internal_phone_number: [

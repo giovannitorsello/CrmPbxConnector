@@ -4,7 +4,7 @@ var fs = require('fs');
 var xlsx = require('xlsx');
 var xlsx_node = require('node-xlsx');
 
-var config = require('./config.js').config;
+var config = require('./config.json');
 var global = require('./global.js');
 var db = require('./database.js');
 

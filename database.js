@@ -5,7 +5,7 @@ const { StringDecoder } = require('string_decoder');
 var fs = require('fs');
 
 var global = require('./global.js');
-var config = require('./config.js').config;
+var config = require('./config.json');
 
 
 module.exports = {

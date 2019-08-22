@@ -1,7 +1,7 @@
 var io = require('socket.io-client');
 var moment = require('moment');
 
-var config = require('./config.js').config;
+var config = require('./config.json');
 var database = require('./database.js');
 
 //var i_inc_ans = 1, i_out_ans = 1, i_inc_noans = 1, i_out_noans = 1;

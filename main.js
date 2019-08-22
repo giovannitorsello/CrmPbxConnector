@@ -17,11 +17,13 @@ var xlsx_json = require('xlsx-parse-json');
 const crypto = require('crypto');
 
 //local requirements
-var config = require('./config.js').config;
+var config = require('./config.json');
 var global = require('./global.js');
 var pbx = require('./pbx.js');
 var db = require('./database.js');
 var mail = require('./mail.js');
+
+
 
 //Real time statistics data
 var statistics = {};
@@ -56,7 +58,7 @@ app.use(express_formidable({
 
 app.listen(8088, function () {
     console.log('Server is started.');
-
+    if(config===null) process.exit(1);
     //Start db connection
     db.start_connection();
     make_statistics();
