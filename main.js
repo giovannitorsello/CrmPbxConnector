@@ -1,4 +1,3 @@
-
 var express = require('express');
 var bodyParser = require('body-parser');
 var multer = require('multer');
@@ -56,7 +55,7 @@ app.use(express_formidable({
     keepExtensions: true // req.files to be arrays of files
 }));
 
-app.listen(8088, function () {
+app.listen(config.http_port, function () {
     console.log('Server is started.');
     if(config===null) process.exit(1);
     //Start db connection
@@ -71,7 +70,7 @@ app.listen(8088, function () {
     }
 
 
-    /* var start_date_search = new Date();start_date_search.setHours(0,0,0,0); 
+    /*var start_date_search = new Date();start_date_search.setHours(0,0,0,0); 
      var end_date_search = new Date();  end_date_search.setHours(23,59,59,0); 
      pbx.get_pbx_calls_status(start_date_search, end_date_search);     
  

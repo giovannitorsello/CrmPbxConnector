@@ -1,0 +1,57 @@
+{
+        "locale": "it-IT",
+        "internal_phone_number": [
+        { "id": "64420", "username": "20", "password": "6u6aqa5y"}, 
+        { "id": "64421", "username": "21", "password": "ju4ahu4y"}, 
+        { "id": "64422", "username": "22", "password": "ana6yzum"},
+        { "id": "64423", "username": "23", "password": "uqyzuneh"}, 
+        { "id": "64424", "username": "24", "password": "gu6a7usu"}, 
+        { "id": "64425", "username": "25", "password": "jynu9uha"} 
+        ],
+        "external_phone_number": [
+        {"phone": "07751778002", "description": "Acque Lazio"}, 
+        {"phone": "08251884292", "description": "Acque Campania"}, 
+        {"phone": "0598630200",  "description": "Acque Em. Romagna"}, 
+        {"phone": "04311938066", "description": "Acque F. Ven. Giulia"}, 
+        {"phone": "0283595056",  "description": "Acque Lombardia"}, 
+        {"phone": "0110240418",  "description": "Acque Piemonte"}, 
+        {"phone": "08331692236", "description": "Acque Puglia"}, 
+        {"phone": "0912747795",  "description": "Acque Palermo"}, 
+        {"phone": "0942388006",  "description": "Acque Messina"},
+        {"phone": "0950973722",  "description": "Acque Catania"}, 
+        {"phone": "0982640787",  "description": "Acque Calabria"}, 
+        {"phone": "0508068095",  "description": "Acque Toscana"}, 
+        {"phone": "0833721510",  "description": "Idros Centro Sud 1"}, 
+        {"phone": "0833730083",  "description": "Idros Centro Sud 2"}, 
+        {"phone": "0833727224",  "description": "Idros Centro Sud 3"}, 
+        {"phone": "08331856326", "description": "Idros Centro Sud 4"}, 
+        {"phone": "0833722459",  "description": "Idros Centro Sud 5"}, 
+        {"phone": "0833727954",  "description": "Idros Centro Sud 6"}, 
+        {"phone": "0902927880",  "description": "Idros Sicilia"}, 
+        {"phone": "0908966300",  "description": "Idros Sicilia"}, 
+        {"phone": "0942388009",  "description": "Idros Sicilia"}, 
+        {"phone": "0942795855",  "description": "Idros Sicilia"}, 
+        {"phone": "0942798163",  "description": "Idros Sicilia"}, 
+        {"phone": "0942896212",  "description": "Idros Sicilia"}, 
+        {"phone": "0707058021",  "description": "Non Associato"}, 
+        {"phone": "sconosciuto", "description": "sconosciuto"} 
+    ],
+        "admin_accounts": [
+        {"username": "torsello", "password": "ponzo2018", "role": "administrator"},
+        {"username": "pomarico", "password": "ponzo2018", "role": "administrator"},
+        {"username": "ponzo", "password": "ponzo2018", "role": "user"}
+    ],
+        "http_port" : 8088, 
+        "database_config": "./install/schema_db.sql",
+        "database_server": "localhost",
+        "database_port": "3306",
+        "database_schema": "crmpbx",
+        "database_user": "crmpbx",
+        "database_password": "crmpbx",
+        "cloudpbx_api_url": "https://my.cloudpbx.it:30644",
+        "minutes_treshold_outgoing_call_in_month": 600,
+        "email_report": [
+        "rponzo57@gmail.com",
+        "giovanni.torsello@gmail.com"
+    ]
+}

@@ -13,10 +13,11 @@ module.exports = {
   //Open connection and configure database for first use;
   start_connection: function () {
     global.connection_mysql = mysql.createConnection({
-      host: "localhost",
-      user: "crmpbx",
-      password: "crmpbx",
-      database: "crmpbx"
+      host: config.database_server,
+      user: config.database_user,
+      password: config.database_password,
+      database: config.database_schema,
+      timezone: 'utc'
     });
 
     global.connection_mysql.connect(function (err) {
@@ -279,6 +280,7 @@ module.exports = {
         //extract external number    
         if (call_flow && call_flow.length) call.dst = call_flow[0].dst
         if(!call.dst) call.dst="sconosciuto";
+        call.begin=call.begin.replace("Z",""); // avoid different format in MariaDB database, no timezone flag is allowed;
 
         var sql = "INSERT INTO calls (hash_call_id,caller,called,dst,type,status,begin,duration,billsec,calldata) VALUES ("
           + "'" + hash_call_id + "',"
@@ -292,7 +294,7 @@ module.exports = {
           + "'" + call.billsec + "',"
           + "'" + str_obj_call + "')";
         global.connection_mysql.query(sql, function (err, result) {
-          if (err) { console.log("Insert error probably duplicate entry. " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status); }
+          if (err) {console.log("Insert error probably duplicate entry. " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status); }
           else console.log("Inserted call " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status);
         });
       }

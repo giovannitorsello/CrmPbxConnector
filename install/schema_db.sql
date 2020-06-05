@@ -1,5 +1,3 @@
-//DROP TABLE IF EXISTS calls;
-//DROP TABLE IF EXISTS statistic;
 
 CREATE TABLE calls (
   id int(10) NOT NULL AUTO_INCREMENT,

@@ -22,7 +22,7 @@ module.exports = {
             var internal_phone = internal.username;
             var password = internal.password;
             console.log("Getting info for: " + internal_phone);
-            var socket = io.connect('https://my.cloudpbx.it:30644', { secure: true, rejectUnauthorized: false });
+            var socket = io.connect(config.cloudpbx_api_url, { secure: true, rejectUnauthorized: false });
             socket_map.set(internal_phone, socket);
             registerSocketEventListeners(socket, internal_phone, password);
         }); //End iteration forEach between internal_phone maps

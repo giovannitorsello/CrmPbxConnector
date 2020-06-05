@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CloudPBX Example</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <ul class="pages">
+    <li class="chat page">
+      <div class="chatArea">
+        <ul class="messages"></ul>
+      </div>
+      <div style="float:left; width:90%;">
+        <!-- textarea class="inputMessage" placeholder="Type here..."></textarea -->
+        <textarea class="inputMessage" placeholder="Type here...">{"method":"CallLog", "DataStart":"2017-02-24 00:00:00", "DataEnd":"2017-02-28 00:00:00"}</textarea>
+      </div>
+      <div style="float:left;  width:10%;">
+        <input class="submitMessage" type="button" value="Send"/>
+      </div>
+    </li>
+    <li class="login page">
+      <div class="form">
+        <h4 class="title">Username</h4>
+        <input class="usernameInput" type="text" maxlength="14" />
+        <h4 class="title">Password</h4>
+        <input class="passwordInput" type="password" maxlength="14" />
+        <br />
+        <input class="submitInput" type="button" value="Send"/>
+      </div>
+    </li>
+  </ul>
+  <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+  <script src="https://my.cloudpbx.it:30293/socket.io/socket.io.js"></script>
+  <script type="text/javascript">
+    var PROT = "https";
+    var DNS = "my.cloudpbx.it";
+    var PORT = "30293";
+  </script>
+  <script src="main.js"></script>
+</body>
+</html>
+
