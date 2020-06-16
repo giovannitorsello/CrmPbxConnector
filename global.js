@@ -5,3 +5,6 @@ global.socket_map = new Map();
 global.connection_mysql={};
 //sessions
 global.sessions = new Map();
+
+//config
+global.config=require('./config.js').readConfigFromFile();

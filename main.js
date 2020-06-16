@@ -16,13 +16,13 @@ var xlsx_json = require('xlsx-parse-json');
 const crypto = require('crypto');
 
 //local requirements
-var config = require('./config.json');
 var global = require('./global.js');
+//Read configuration
+var config = require('./config.js').readConfigFromFile();
+
 var pbx = require('./pbx.js');
 var db = require('./database.js');
 var mail = require('./mail.js');
-
-
 
 //Real time statistics data
 var statistics = {};
@@ -57,26 +57,29 @@ app.use(express_formidable({
 
 app.listen(config.http_port, function () {
     console.log('Server is started.');
+    
+
     if(config===null) process.exit(1);
     //Start db connection
     db.start_connection();
-    make_statistics();
+    //start connection internal phones
+    pbx.connect_socket_internal_phones(function() {
 
-    var initial_past_day = 1;
-    for (var i = initial_past_day; i > initial_past_day - 1; i--) {
-        var start_date_search = new Date(new Date().getTime() - i * (86400000));
-        var end_date_search = new Date(new Date().getTime() - (i - 1) * (86400000));
-        pbx.get_pbx_calls_status(start_date_search, end_date_search);
-    }
-
-
-    /*var start_date_search = new Date();start_date_search.setHours(0,0,0,0); 
-     var end_date_search = new Date();  end_date_search.setHours(23,59,59,0); 
-     pbx.get_pbx_calls_status(start_date_search, end_date_search);     
- 
-    var start_date_search=moment("2019-03-01", "YYYY-MM-DD");
-    var end_date_search=moment("2019-03-02", "YYYY-MM-DD");
-    pbx.get_pbx_calls_status(start_date_search, end_date_search);*/
+        setTimeout(function(){
+            var delta_minutes=60;
+            var i=10;
+            //increase in the future for DST problem
+            var initial_start_date=new Date(new Date().getTime()+3600000)
+            while(i>=1) {
+                var millis=delta_minutes*60*1000;
+                var start_date_search = new Date(initial_start_date - i * millis);
+                var end_date_search = new Date(initial_start_date - (i - 1) * millis);
+                pbx.get_pbx_calls_status(start_date_search, end_date_search);
+                i--;                
+            }    
+            make_statistics();
+        },10000);
+    });
 
 });
 
@@ -278,7 +281,7 @@ router.post("/get_statistics", function (req, res) {
 
 
 //Schedule operation
-var job_pbx = schedule.scheduleJob('*/5 * * * *', function () {
+var job_pbx_statistic = schedule.scheduleJob('*/1 * * * *', function () {
     make_statistics();
     download_calls_data_from_pbx();
 });
@@ -292,6 +295,7 @@ function make_statistics() {
 function statistics_external_phone_daily() {
     //Init statistic array for internal phones
     statistics.external_phones = [];
+    console.log(config);
     //prepare internal phones statistics structure
     config.external_phone_number.forEach(function (external, index_external) {
         statistics.external_phones[index_external] = {};
@@ -435,13 +439,14 @@ function minutes_consuming_outgoing_calls() {
 
 
 
-//Schedule download data
+//Schedule download datanode
 function download_calls_data_from_pbx() {
-    var durationSearchInMinutes = 20;
     var start_date_search = new Date();
     var end_date_search = new Date();
-    start_date_search.setMinutes(start_date_search.getMinutes() - durationSearchInMinutes);
-    end_date_search.setMinutes(end_date_search.getMinutes() + 5);
+    var delta_minutes=180;
+    var millis=delta_minutes*60*1000;
+    var start_date_search = new Date(new Date().getTime() - millis);
+    var end_date_search = new Date(new Date().getTime());
     pbx.get_pbx_calls_status(start_date_search, end_date_search);
 }
 

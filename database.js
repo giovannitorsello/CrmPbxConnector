@@ -5,8 +5,8 @@ const { StringDecoder } = require('string_decoder');
 var fs = require('fs');
 
 var global = require('./global.js');
-var config = require('./config.json');
-
+//Read configuration
+var config = require('./config.js').readConfigFromFile();
 
 module.exports = {
 
@@ -63,7 +63,7 @@ module.exports = {
       if (err) { console.log("Search error"); }
       else console.log("Search done: " + sql);
       //Prevede le ricerche nulle.
-      if (result.length == 0) callback(result);
+      if (result===null || result.length === 0) callback(result);
 
       //Evita i duplicati         
       result.forEach(function (element, index) {
@@ -80,11 +80,6 @@ module.exports = {
         //Ricalcolo stato e destinazione
         var qres = status_remap_for_queue(element);
         var true_status = qres.computed_status;
-        /*var true_dest = qres.dst;
-        if (true_dest) {
-          element.dst = true_dest;
-          element.called = true_dest;
-        }*/
 
         if ((!b_exists && true_status === call_status) || call_status === "")
           final_result.push(element); //inserisce nel risultato finale la chiamata ricercata tra quelle non risposte o occupate        
@@ -124,7 +119,7 @@ module.exports = {
       else console.log("Search done: " + sql);
 
       //Esce se la ricerca è vuota
-      if (result.length === 0) callback(final_result);
+      if (result===null || result.length === 0) callback(final_result);
 
       var final_result = [];
       result.forEach(function (element, index) {
@@ -202,7 +197,7 @@ module.exports = {
         + "'" + value + "',"
         + "'" + last_update + "')";
       global.connection_mysql.query(sql_ins, function (err_ins, res_ins) {
-        if (err_ins) { console.log("Statistics - Insert error " + name + "----" + value + "-------" + last_update + "---" + sql); console.log(err_ins); }
+        if (err_ins) { console.log("Statistics - Insert error " + name + "----" + value + "-------" + last_update + "---" + sql_ins); console.log(err_ins); }
         else console.log("Statistics - Insert successfull " + name + "----" + value + "-------" + last_update);
       });
     });
@@ -294,11 +289,16 @@ module.exports = {
           + "'" + call.billsec + "',"
           + "'" + str_obj_call + "')";
         global.connection_mysql.query(sql, function (err, result) {
-          if (err) {console.log("Insert error probably duplicate entry. " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status); }
-          else console.log("Inserted call " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status);
+          if (err) {
+            //console.log("Insert error probably duplicate entry. " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status); 
+          }
+          else 
+            console.log("Inserted call " + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status);
         });
       }
-      else { console.log("Call exists " + hash_call_id + "---" + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status); }
+      else { 
+        //console.log("Call exists " + hash_call_id + "---" + call.begin + "-" + call.caller + "->" + call.called + "---" + type + "---" + call.status); 
+      }
     });
   },
   //Double filter no answer
@@ -330,8 +330,8 @@ module.exports = {
       //Eliminazione chiamate già risposte      
       var final_result = [];
       //Esce se la ricerca è vuota
-      if (!result || result.length === 0) callback(final_result);
-
+      if (result===null || !result || result.length === 0) callback(final_result);
+      else
       result.forEach(function (element, index) {
         //Parse callflow
         result[index] = parse_call_flow_from_database(result[index]);
@@ -400,7 +400,7 @@ module.exports = {
       }
 
       //Esce se la ricerca è vuota
-      if (result.length === 0) callback(final_result);
+      if (result===null || result.length === 0) callback(final_result);
 
       //Eliminazione chiamate già risposte      
       var final_result = [];
@@ -483,14 +483,17 @@ function status_remap_for_queue(call) {
       if (b_dst_internal && (call.status === "ANSWERED") && (element.stato === "ANSWERED")) {
         true_called = element.dst;
         b_internal_ans = true;
+        break;
       }
     }
 
     //Correzione del problema delle code le chiamate mese in coda sono marcate risposte ma non è detto
     //Se nel call flow non esistono elementi che hanno dato risposta modifica lo stato della chiamata     
-    if (!b_internal_ans) res.computed_status = "NO ANSWER";
-    if (!b_internal_ans && call.status === "BUSY") res.computed_status = "BUSY";
-    if (b_internal_ans) { res.computed_status = "ANSWERED"; res.dst = true_called; }
+    if (!b_internal_ans){
+      res.computed_status = "NO ANSWER";
+      if (call.status === "BUSY") res.computed_status = "BUSY";
+    } 
+    else { res.computed_status = "ANSWERED"; res.dst = true_called; }
   }
 
   //analisi call flow per chiamate in uscita

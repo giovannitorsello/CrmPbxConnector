@@ -401,8 +401,9 @@
             //format date in human readable
             var d_UTC = new Date(element.begin);
             var td_timezone = -(new Date().getTimezoneOffset());
-            element.begin = moment(element.begin).add(td_timezone, 'minutes').format('DD/MM/YYYY HH:mm:ss');
-            //element.begin = moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
+            //Localize Timezone Hour and minutes call
+            //element.begin = moment(element.begin).add(td_timezone, 'minutes').format('DD/MM/YYYY HH:mm:ss');
+            element.begin = moment(element.begin).format('DD/MM/YYYY HH:mm:ss');
 
             //mark call if related conversations exist
             if ((!element.conversations) && (element.status === "NO ANSWER" || element.status === "BUSY"))

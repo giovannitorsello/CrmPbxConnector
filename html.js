@@ -1,3 +1,6 @@
+//Read configuration
+var config = require('./config.js').readConfigFromFile();
+
 var date_start;
 var date_end;
 
