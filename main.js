@@ -443,7 +443,7 @@ function minutes_consuming_outgoing_calls() {
 function download_calls_data_from_pbx() {
     var start_date_search = new Date();
     var end_date_search = new Date();
-    var delta_minutes=180;
+    var delta_minutes=180; //Search in the last 3 hors
     var millis=delta_minutes*60*1000;
     var start_date_search = new Date(new Date().getTime() - millis);
     var end_date_search = new Date(new Date().getTime());
